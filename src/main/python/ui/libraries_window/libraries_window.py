@@ -82,11 +82,13 @@ class LibrariesWindow(QWidget):
     store.getLibraryManager().save(getLibrariesDirectory())
 
     self.libraries_model.reloadLibraries()
+    self.remove_button.setEnabled(False)
 
   def librarySelected(self, item_selection):
     
     if len(item_selection.indexes()) == 0:
       self.remove_button.setEnabled(False)
+      return
     
     self.remove_button.setEnabled(True)
   
@@ -100,7 +102,6 @@ class LibrariesWindow(QWidget):
     Storage.getInstance().getLibraryManager().removeLibrary(selected.data(Qt.DisplayRole))
     Storage.getInstance().getLibraryManager().save(getLibrariesDirectory())
     self.libraries_model.reloadLibraries()
-    self.libraries_list.selectionModel().clearSelection()
 
     # even though the selection gets cleared, the signal doesn't fire
     if len(self.libraries_list.selectionModel().selectedIndexes()) == 0:

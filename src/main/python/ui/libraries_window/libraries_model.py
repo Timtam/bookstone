@@ -23,6 +23,13 @@ class LibrariesModel(QStandardItemModel):
 
     for lib in self._libraries:
       row = []
-      row.append(QStandardItem(lib.getUUID()))
-      row.append(QStandardItem(lib.getBackend().getName()))
+
+      item = QStandardItem(lib.getUUID())
+      item.setEditable(False)
+      row.append(item)
+      
+      item = QStandardItem(lib.getBackend().getName())
+      item.setEditable(False)
+      row.append(item)
+
       self.appendRow(row)
