@@ -31,6 +31,7 @@ class LibrariesWindow(QWidget):
     self.libraries_list.setTabKeyNavigation(False)
     self.libraries_model = LibrariesModel()
     self.libraries_list.setModel(self.libraries_model)
+    self.libraries_list.setSelectionMode(QTableView.SingleSelection)
     self.libraries_list.selectionModel().selectionChanged.connect(self.librarySelected)
     self.libraries_label.setBuddy(self.libraries_list)
     self.layout.addWidget(self.libraries_list)

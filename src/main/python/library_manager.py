@@ -1,4 +1,5 @@
 import json
+import natsort
 import os
 import os.path
 
@@ -13,7 +14,8 @@ class LibraryManager:
     self._libraries.append(lib)
 
   def getLibraries(self):
-    return self._libraries[:]
+
+    return natsort.natsorted(self._libraries[:], key = lambda l: l.getUUID())
 
   def removeLibrary(self, lib):
     self._libraries.remove(lib)
