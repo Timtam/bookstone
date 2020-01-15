@@ -3,9 +3,9 @@ from PyQt5.QtWidgets import (
   QAction,
   QWidget,
   QLabel, 
-  QListView,
   QMenu,
   QPushButton,
+  QTableView,
   QTreeView,
   QVBoxLayout)
 
@@ -27,7 +27,8 @@ class LibrariesWindow(QWidget):
     self.libraries_label = QLabel('Known libraries', self)
     self.layout.addWidget(self.libraries_label)
 
-    self.libraries_list = QListView(self)
+    self.libraries_list = QTableView(self)
+    self.libraries_list.setTabKeyNavigation(False)
     self.libraries_model = LibrariesModel()
     self.libraries_list.setModel(self.libraries_model)
     self.libraries_list.selectionModel().selectionChanged.connect(self.librarySelected)

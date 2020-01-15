@@ -1,13 +1,16 @@
-from PyQt5.QtCore import QAbstractListModel, Qt
+from PyQt5.QtCore import Qt
+from PyQt5.QtGui import QStandardItem, QStandardItemModel
 
 from storage import Storage
 
-class LibrariesModel(QAbstractListModel):
+class LibrariesModel(QStandardItemModel):
 
   def __init__(self, *args, **kwargs):
-    QAbstractListModel.__init__(self, *args, **kwargs)
+    QStandardItemModel.__init__(self, 0, 2, *args, **kwargs)
 
     self._libraries = []
+
+    self.setHorizontalHeaderLabels(['Name', 'Connection'])
 
     self.reloadLibraries()
   
@@ -15,16 +18,18 @@ class LibrariesModel(QAbstractListModel):
 
     amount = len(self._libraries)
 
+    self.clear()
+
     self._libraries = Storage.getInstance().getLibraryManager().getLibraries()
 
     if amount != len(self._libraries):
       self.layoutChanged.emit()
 
-  def data(self, index, role):
-  
-    if role == Qt.DisplayRole:
+      for lib in self._libraries:
+        row = []
+        row.append(QStandardItem(lib.getUUID()))
+        row.append(QStandardItem(lib.getBackend().getName()))
+        self.appendRow(row)
 
-      return self._libraries[index.row()].getUUID()
-  
   def rowCount(self, index):
     return len(self._libraries)
