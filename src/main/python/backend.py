@@ -8,6 +8,9 @@ class Backend(ABC):
   def setPath(self, path):
     self._path = path
 
+  def getPath(self):
+    return self._path
+
   @staticmethod
   @abstractmethod
   def getName(self):
@@ -24,3 +27,7 @@ class Backend(ABC):
   def deserialize(self, serialized):
 
     self._path = serialized.get('path', '')
+
+  @abstractmethod
+  def listDirectory(self, dir):
+    raise NotImplementedError()

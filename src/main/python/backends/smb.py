@@ -1,4 +1,9 @@
+import smbclient
+import smbclient.path
+import smbprotocol.exceptions
+
 from backend import Backend
+from exceptions import BackendError
 
 class SMBBackend(Backend):
 
@@ -30,3 +35,9 @@ class SMBBackend(Backend):
   
   def setPassword(self, password):
     self._password = password
+
+  def listDirectory(self, dir):
+    try:
+      return smbclient.listdir(dir, username=self._username, password=self._password)
+    except smbprotocol.exceptions.SMBResponseException as exc:
+      raise BackendError(exc.message)

@@ -1,3 +1,5 @@
+import os
+
 from backend import Backend
 
 class LocalBackend(Backend):
@@ -11,3 +13,6 @@ class LocalBackend(Backend):
   
   def deserialize(self, serialized):
     Backend.deserialize(self, serialized)
+
+  def listDirectory(self, dir):
+    return os.listdir(dir)

@@ -6,11 +6,13 @@ from PyQt5.QtWidgets import (
   QHBoxLayout)
 
 from backends.smb import SMBBackend
+from ui.libraries_window.backend_dialog import BackendDialog
 
-class SMBBackendDialog(QDialog):
+class SMBBackendDialog(QDialog, BackendDialog):
 
   def __init__(self, *args, **kwargs):
     QDialog.__init__(self, *args, **kwargs)
+    BackendDialog.__init__(self)
 
     self.setWindowTitle('Bookstone - SMB Library')
 
@@ -93,3 +95,8 @@ class SMBBackendDialog(QDialog):
   @staticmethod
   def getName():
     return SMBBackend.getName()
+  
+  def accept(self):
+    if self.testConnection():
+      return QDialog.accept(self)
+      
