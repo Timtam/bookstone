@@ -1,4 +1,6 @@
-from library_manager import LibraryManager
+from PyQt5.QtCore import QThreadPool
+
+from library.manager import LibraryManager
 
 class Storage:
   __instance = None
@@ -18,6 +20,7 @@ class Storage:
 
     self._application_context = None
     self._library_manager = LibraryManager()
+    self._thread_pool = QThreadPool()
 
   def getApplicationContext(self):
     return self._application_context
@@ -27,3 +30,6 @@ class Storage:
     
   def getLibraryManager(self):
     return self._library_manager
+
+  def getThreadPool(self):
+    return self._thread_pool

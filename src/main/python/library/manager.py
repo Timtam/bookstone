@@ -3,7 +3,7 @@ import natsort
 import os
 import os.path
 
-from library import Library
+from .library import Library
 
 class LibraryManager:
 

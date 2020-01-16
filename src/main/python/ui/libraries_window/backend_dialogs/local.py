@@ -1,11 +1,13 @@
 from PyQt5.QtWidgets import QFileDialog
 
 from backends.local import LocalBackend
+from ..backend_dialog import BackendDialog
 
-class LocalBackendDialog(QFileDialog):
+class LocalBackendDialog(QFileDialog, BackendDialog):
 
   def __init__(self, *args, **kwargs):
     QFileDialog.__init__(self, *args, **kwargs)
+    BackendDialog.__init__(self)
 
     self.setFileMode(QFileDialog.Directory)
     

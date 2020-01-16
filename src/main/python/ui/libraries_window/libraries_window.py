@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (
 
 from .backend_dialogs import BackendDialogs
 from .libraries_model import LibrariesModel
-from library import Library
+from library.library import Library
 from storage import Storage
 from utils import getLibrariesDirectory
 

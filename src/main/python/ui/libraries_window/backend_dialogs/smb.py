@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
   QHBoxLayout)
 
 from backends.smb import SMBBackend
-from ui.libraries_window.backend_dialog import BackendDialog
+from ..backend_dialog import BackendDialog
 
 class SMBBackendDialog(QDialog, BackendDialog):
 
