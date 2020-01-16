@@ -62,7 +62,7 @@ class LibraryManager:
       with open(libpath, 'w') as libfile:
       
         ser = lib.serialize()
-        data = json.dumps(ser)
+        data = json.dumps(ser, indent = 2)
         
         libfile.write(data)
 
