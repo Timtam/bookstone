@@ -8,15 +8,20 @@ class Library:
 
     self._backend = None
     self._uuid = str(uuid.uuid4())
+    self._name = ''
   
   def getBackend(self):
     return self._backend
   
   def setBackend(self, backend):
     self._backend = backend
+
+    if self._name == '':
+      self._name = backend.getPath()
   
   def serialize(self):
     return {
+      'name': self._name,
       'backendName': self._backend.getName(),
       'backend': self._backend.serialize(),
       'uuid': self._uuid,
@@ -45,6 +50,7 @@ class Library:
     
     self._backend = backend
     self._uuid = serialized.get('uuid', '')
+    self._name = serialized.get('name', '')
     
     if not self._uuid:
       raise IOError('no valid UUID found')
@@ -59,3 +65,9 @@ class Library:
       return self._uuid == lib
     else:
       return NotImplemented
+
+  def getName(self):
+    return self._name
+  
+  def setName(self, name):
+    self._name = name

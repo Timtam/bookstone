@@ -24,7 +24,7 @@ class LibrariesModel(QStandardItemModel):
     for lib in self._libraries:
       row = []
 
-      item = QStandardItem(lib.getUUID())
+      item = QStandardItem(lib.getName())
       item.setEditable(False)
       row.append(item)
       
@@ -33,3 +33,10 @@ class LibrariesModel(QStandardItemModel):
       row.append(item)
 
       self.appendRow(row)
+
+  def updateLibrary(self, lib):
+  
+    index = self._libraries.index(lib)
+    
+    item = self.item(index, 0)
+    item.setText(lib.getName())

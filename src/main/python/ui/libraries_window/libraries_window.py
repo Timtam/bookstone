@@ -1,8 +1,10 @@
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, QEvent
 from PyQt5.QtWidgets import (
   QAction,
   QWidget,
+  QInputDialog,
   QLabel, 
+  QLineEdit,
   QMenu,
   QPushButton,
   QTableView,
@@ -32,7 +34,7 @@ class LibrariesWindow(QWidget):
     self.libraries_model = LibrariesModel()
     self.libraries_list.setModel(self.libraries_model)
     self.libraries_list.setSelectionMode(QTableView.SingleSelection)
-    self.libraries_list.selectionModel().selectionChanged.connect(self.librarySelected)
+    self.libraries_list.installEventFilter(self)
     self.libraries_label.setBuddy(self.libraries_list)
     self.layout.addWidget(self.libraries_list)
 
@@ -50,11 +52,6 @@ class LibrariesWindow(QWidget):
       act.triggered.connect(self.generateShowAddDialogLambda(dialog))
     
     self.add_button.setMenu(self.add_menu)
-
-    self.remove_button = QPushButton('Remove', self)
-    self.remove_button.setEnabled(False)
-    self.remove_button.clicked.connect(self.removeLibrary)
-    self.layout.addWidget(self.remove_button)
 
     self.library_view = QTreeView(self)
     self.layout.addWidget(self.library_view)
@@ -82,27 +79,41 @@ class LibrariesWindow(QWidget):
     store.getLibraryManager().save(getLibrariesDirectory())
 
     self.libraries_model.reloadLibraries()
-    self.remove_button.setEnabled(False)
 
-  def librarySelected(self, item_selection):
-    
-    if len(item_selection.indexes()) == 0:
-      self.remove_button.setEnabled(False)
-      return
-    
-    self.remove_button.setEnabled(True)
-  
   def generateShowAddDialogLambda(self, dialog):
     return lambda: self.showAddDialog(dialog)
 
-  def removeLibrary(self):
+  def removeLibrary(self, lib):
   
-    selected = self.libraries_list.currentIndex()
-    
-    Storage.getInstance().getLibraryManager().removeLibrary(selected.data(Qt.DisplayRole))
-    Storage.getInstance().getLibraryManager().save(getLibrariesDirectory())
+    Storage.getInstance().getLibraryManager().removeLibrary(lib)
+    self.libraries_list.selectionModel().clearSelection()
     self.libraries_model.reloadLibraries()
+    
+  def renameLibrary(self, lib):
+  
+    text, ok = QInputDialog.getText(self, 'Bookstone - Rename Library', 'Enter new name:', QLineEdit.Normal, lib.getName())
+    
+    if ok:
+      lib.setName(text)
+      Storage.getInstance().getLibraryManager().save(getLibrariesDirectory())
+      self.libraries_model.updateLibrary(lib)
 
-    # even though the selection gets cleared, the signal doesn't fire
-    if len(self.libraries_list.selectionModel().selectedIndexes()) == 0:
-      self.remove_button.setEnabled(False)
+  def eventFilter(self, source, event):
+  
+    if event.type() == QEvent.ContextMenu and source is self.libraries_list:
+
+      index = source.indexAt(event.pos()).row()
+
+      if index >= 0:
+        lib = Storage.getInstance().getLibraryManager().getLibraries()[index]
+        menu = QMenu(self.libraries_list)
+        act = QAction('Rename', menu)
+        act.triggered.connect(lambda: self.renameLibrary(lib))
+        menu.addAction(act)
+        act = QAction('Remove', menu)
+        act.triggered.connect(lambda: self.removeLibrary(lib))
+        menu.addAction(act)
+        menu.exec_()
+
+        return True
+    return QWidget.eventFilter(self, source, event)
