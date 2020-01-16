@@ -13,14 +13,15 @@ from PyQt5.QtWidgets import (
 
 from .backend_dialogs import BackendDialogs
 from .libraries_model import LibrariesModel
-from library.library import Library
+from .. import Window
+from library import Library
 from storage import Storage
 from utils import getLibrariesDirectory
 
-class LibrariesWindow(QWidget):
+class LibrariesWindow(Window):
 
-  def __init__(self):
-    QWidget.__init__(self)
+  def __init__(self, *args, **kwargs):
+    Window.__init__(self, *args, **kwargs)
 
     self.setWindowTitle('Bookstone - Libraries')
 
@@ -57,6 +58,7 @@ class LibrariesWindow(QWidget):
     self.layout.addWidget(self.library_view)
 
     self.close_button = QPushButton('Close', self)
+    self.close_button.pressed.connect(self.close)
     self.layout.addWidget(self.close_button)
 
     self.setLayout(self.layout)
@@ -117,3 +119,6 @@ class LibrariesWindow(QWidget):
 
         return True
     return QWidget.eventFilter(self, source, event)
+
+  def close(self):
+    self.closed.emit()

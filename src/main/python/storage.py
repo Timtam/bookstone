@@ -1,6 +1,6 @@
 from PyQt5.QtCore import QThreadPool
 
-from library.manager import LibraryManager
+from library import LibraryManager
 
 class Storage:
   __instance = None
