@@ -108,7 +108,10 @@ class Node:
     
     for child in self._children:
       if child._name == child_name:
-        return child.findChild(os.path.join(*parts[1:]))
+        if len(parts) == 1:
+          return child
+        else:
+          return child.findChild(os.path.join(*parts[1:]))
     
     return None
 
