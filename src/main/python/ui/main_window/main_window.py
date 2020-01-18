@@ -20,7 +20,7 @@ class MainWindow(Window):
     self.menu_bar = QMenuBar(self)
     self.file_menu = self.menu_bar.addMenu('&File')
     
-    act = QAction('Manage libraries', self.file_menu)
+    act = QAction('Manage &libraries', self.file_menu)
     act.triggered.connect(self.showLibrariesWindow)
     self.file_menu.addAction(act)
 

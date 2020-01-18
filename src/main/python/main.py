@@ -1,5 +1,6 @@
 from fbs_runtime.application_context.PyQt5 import ApplicationContext
 
+from library import LibraryManager
 from storage import Storage
 from ui import WindowController
 from ui.main_window import MainWindow
@@ -12,7 +13,9 @@ if __name__ == '__main__':
 
     store = Storage.getInstance()
     store.setApplicationContext(appctxt)
-    store.getLibraryManager().load(getLibrariesDirectory())
+    manager = LibraryManager()
+    store.setLibraryManager(manager)
+    manager.load(getLibrariesDirectory())
 
     controller = WindowController.getInstance()
     controller.pushWindow( MainWindow() )

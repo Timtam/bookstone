@@ -1,6 +1,7 @@
 import uuid
 
 from backends import Backends
+from .node import Node
 
 class Library:
 
@@ -9,6 +10,7 @@ class Library:
     self._backend = None
     self._uuid = str(uuid.uuid4())
     self._name = ''
+    self._tree = Node()
   
   def getBackend(self):
     return self._backend
@@ -25,6 +27,7 @@ class Library:
       'backendName': self._backend.getName(),
       'backend': self._backend.serialize(),
       'uuid': self._uuid,
+      'tree': self._tree.serialize(),
     }
 
   def deserialize(self, serialized):
@@ -55,6 +58,12 @@ class Library:
     if not self._uuid:
       raise IOError('no valid UUID found')
 
+    self._tree = Node()
+    tree = serialized.get('tree', '')
+    
+    if tree != '':
+      self._tree.deserialize(tree)
+    
   def getUUID(self):
     return self._uuid
   
@@ -71,3 +80,6 @@ class Library:
   
   def setName(self, name):
     self._name = name
+
+  def getTree(self):
+    return self._tree

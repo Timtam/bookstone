@@ -1,4 +1,5 @@
 import os
+import os.path
 
 from backend import Backend
 
@@ -16,3 +17,9 @@ class LocalBackend(Backend):
 
   def listDirectory(self, dir):
     return os.listdir(dir)
+
+  def isDirectory(self, path):
+    return os.path.isdir(path)
+  
+  def isFile(self, path):
+    return os.path.isfile(path)

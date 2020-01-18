@@ -41,3 +41,9 @@ class SMBBackend(Backend):
       return smbclient.listdir(dir, username=self._username, password=self._password)
     except smbprotocol.exceptions.SMBResponseException as exc:
       raise BackendError(exc.message)
+
+  def isDirectory(self, path):
+    return smbclient.path.isdir(path, username=self._username, password=self._password)
+  
+  def isFile(self, path):
+    return smbclient.path.isfile(path, username=self._username, password=self._password)
