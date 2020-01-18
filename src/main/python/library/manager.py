@@ -13,7 +13,7 @@ from utils import getLibrariesDirectory
 
 class LibraryManager(QObject):
 
-  indexerFinished = pyqtSignal()
+  indexerFinished = pyqtSignal(bool)
   indexerResult = pyqtSignal(Library, Node)
   indexerStarted = pyqtSignal()
   indexerStatusChanged = pyqtSignal(Library, str)
@@ -103,10 +103,26 @@ class LibraryManager(QObject):
     self._indexer.signals.statusChanged.connect(self.indexerStatusChanged.emit)
     self._indexer.signals.result.connect(self._indexer_result)
     self._indexer.signals.result.connect(self.indexerResult.emit)
+    self._indexer.signals.finished.connect(self._indexer_finished)
     self._indexer.signals.finished.connect(self.indexerFinished.emit)
 
     Storage.getInstance().getThreadPool().start(self._indexer)
     self.indexerStarted.emit()
+
+  def cancelIndexing(self):
+  
+    if self._indexer is None:
+      return
+    
+    self._indexer.cancel()
+    
+    self._indexer.signals.statusChanged.disconnect(self.indexerStatusChanged.emit)
+    self._indexer.signals.result.disconnect(self._indexer_result)
+    self._indexer.signals.result.disconnect(self.indexerResult.emit)
+    self._indexer.signals.finished.disconnect(self._indexer_finished)
+    self._indexer.signals.finished.disconnect(self.indexerFinished.emit)
+
+    self._indexer = None
 
   def _indexer_result(self, lib, tree):
     
@@ -120,3 +136,6 @@ class LibraryManager(QObject):
         old_tree.addChild(child)
 
       self.save(getLibrariesDirectory())
+
+  def _indexer_finished(self, success):
+    self.cancelIndexing()

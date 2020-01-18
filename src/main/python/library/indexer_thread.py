@@ -15,6 +15,7 @@ class IndexerThread(QRunnable):
     QRunnable.__init__(self)
 
     self._libraries = libraries
+    self._cancel = False
 
   @pyqtSlot()
   def run(self):
@@ -35,6 +36,10 @@ class IndexerThread(QRunnable):
       
       while not open.empty():
         
+        if self._cancel:
+          self.signals.finished.emit(False)
+          return
+
         next = open.get()
         
         next_path = next.getPath()
@@ -45,6 +50,10 @@ class IndexerThread(QRunnable):
         
         for dir in dir_list:
           
+          if self._cancel:
+            self.signals.finished.emit(False)
+            return
+
           new = tree.findChild(os.path.join(next_path, dir))
           
           if new is None:
@@ -64,4 +73,7 @@ class IndexerThread(QRunnable):
 
       self.signals.result.emit(lib, tree)
           
-    self.signals.finished.emit()
+    self.signals.finished.emit(True)
+
+  def cancel(self):
+    self._cancel = True

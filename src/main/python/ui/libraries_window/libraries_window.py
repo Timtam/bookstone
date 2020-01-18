@@ -54,14 +54,20 @@ class LibrariesWindow(Window):
     
     self.add_button.setMenu(self.add_menu)
 
-    self.library_view = QTreeView(self)
-    self.layout.addWidget(self.library_view)
+    self.indexing_button = QPushButton(self)
+    self.layout.addWidget(self.indexing_button)
 
     self.close_button = QPushButton('Close', self)
     self.close_button.pressed.connect(self.close)
     self.layout.addWidget(self.close_button)
 
     self.setLayout(self.layout)
+
+    manager = Storage.getInstance().getLibraryManager()
+    manager.indexerStarted.connect(self.indexerHandler)
+    manager.indexerFinished.connect(self.indexerHandler)
+
+    self.initializeIndexingButton()
 
   def showAddDialog(self, dialog):
 
@@ -121,4 +127,43 @@ class LibrariesWindow(Window):
     return QWidget.eventFilter(self, source, event)
 
   def close(self):
+
+    manager = Storage.getInstance().getLibraryManager()
+    manager.indexerStarted.disconnect(self.indexerHandler)
+    manager.indexerFinished.disconnect(self.indexerHandler)
+    
     self.closed.emit()
+
+  def indexerHandler(self, success = None):
+    self.initializeIndexingButton()
+
+  def startIndexing(self):
+    Storage.getInstance().getLibraryManager().startIndexing()
+    self.initializeIndexingButton()
+
+  def cancelIndexing(self):
+    Storage.getInstance().getLibraryManager().cancelIndexing()
+    self.initializeIndexingButton()
+
+  def initializeIndexingButton(self):
+  
+    manager = Storage.getInstance().getLibraryManager()
+    
+    if manager.isIndexing():
+
+      try:
+        self.indexing_button.pressed.disconnect(self.startIndexing)
+      except TypeError:
+        pass
+
+      self.indexing_button.pressed.connect(self.cancelIndexing)
+      self.indexing_button.setText('Stop indexing')
+    else:
+
+      try:
+        self.indexing_button.pressed.disconnect(self.cancelIndexing)
+      except TypeError:
+        pass
+
+      self.indexing_button.pressed.connect(self.startIndexing)
+      self.indexing_button.setText('Start indexing')

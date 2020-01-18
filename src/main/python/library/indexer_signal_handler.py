@@ -6,5 +6,5 @@ from .node import Node
 class IndexerSignalHandler(QObject):
 
   statusChanged = pyqtSignal(Library, str)
-  finished = pyqtSignal()
+  finished = pyqtSignal(bool)
   result = pyqtSignal(Library, Node)
