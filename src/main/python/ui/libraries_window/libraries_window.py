@@ -87,15 +87,21 @@ class LibrariesWindow(Window):
     store.getLibraryManager().save(getLibrariesDirectory())
 
     self.libraries_model.reloadLibraries()
+    self.initializeIndexingButton()
 
   def generateShowAddDialogLambda(self, dialog):
     return lambda: self.showAddDialog(dialog)
 
   def removeLibrary(self, lib):
   
-    Storage.getInstance().getLibraryManager().removeLibrary(lib)
+    manager = Storage.getInstance().getLibraryManager()
+
+    manager.removeLibrary(lib)
+    manager.save(getLibrariesDirectory())
+    
     self.libraries_list.selectionModel().clearSelection()
     self.libraries_model.reloadLibraries()
+    self.initializeIndexingButton()
     
   def renameLibrary(self, lib):
   
@@ -149,21 +155,27 @@ class LibrariesWindow(Window):
   
     manager = Storage.getInstance().getLibraryManager()
     
-    if manager.isIndexing():
+    libs = len(manager.getLibraries())
+    
+    if libs == 0:
+      self.indexing_button.setEnabled(False)
+
+    if not manager.isIndexing() or libs == 0:
 
       try:
-        self.indexing_button.pressed.disconnect(self.startIndexing)
-      except TypeError:
-        pass
-
-      self.indexing_button.pressed.connect(self.cancelIndexing)
-      self.indexing_button.setText('Stop indexing')
-    else:
-
-      try:
-        self.indexing_button.pressed.disconnect(self.cancelIndexing)
+        self.indexing_button.pressed.disconnect()
       except TypeError:
         pass
 
       self.indexing_button.pressed.connect(self.startIndexing)
       self.indexing_button.setText('Start indexing')
+
+    else:
+
+      try:
+        self.indexing_button.pressed.disconnect()
+      except TypeError:
+        pass
+
+      self.indexing_button.pressed.connect(self.cancelIndexing)
+      self.indexing_button.setText('Cancel indexing')
