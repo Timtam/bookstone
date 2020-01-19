@@ -159,6 +159,8 @@ class LibrariesWindow(Window):
     
     if libs == 0:
       self.indexing_button.setEnabled(False)
+    else:
+      self.indexing_button.setEnabled(True)
 
     if not manager.isIndexing() or libs == 0:
 
