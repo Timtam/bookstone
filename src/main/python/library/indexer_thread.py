@@ -5,6 +5,7 @@ from PyQt5.QtCore import QRunnable, pyqtSlot
 
 from .indexer_signal_handler import IndexerSignalHandler
 from .node import Node
+from utils import getSupportedFileExtensions
 
 class IndexerThread(QRunnable):
 
@@ -28,6 +29,8 @@ class IndexerThread(QRunnable):
       # that is required to not disturb running operations in the gui thread
       tree = copy.deepcopy(lib.getTree())
       
+      tree.setNotIndexed()
+
       backend = lib.getBackend()
       
       open = queue.Queue()
@@ -65,11 +68,27 @@ class IndexerThread(QRunnable):
           else:
             new.setFile()
             
+          if new.isFile():
+          
+            # check file extensions
+            _, ext = os.path.splitext(new.getName())
+
+            if not ext.lower() in getSupportedFileExtensions():
+              if new.getParent() is not None:
+                next.removeChild(new)
+              continue            
+            else:
+              new.setIndexed()
+
           if next.findChild(new) is None:
             next.addChild(new)
 
           if new.isDirectory():
             open.put(new)
+
+        next.setIndexed()
+
+      tree.clean()
 
       self.signals.result.emit(lib, tree)
           

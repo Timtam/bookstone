@@ -12,6 +12,7 @@ class Node:
     self._type = NODE_DIRECTORY
     self._children = []
     self._parent = parent
+    self._indexed = True
   
   def setName(self, name):
     self._name = name
@@ -94,7 +95,14 @@ class Node:
   def findChild(self, location):
   
     if isinstance(location, Node):
-      path = location.getPath()
+      try:
+        path = os.path.relpath(location.getPath(), self.getPath())
+      except ValueError:
+        if self.getPath() == '':
+          path = location.getPath()
+        else:
+          # paths do not overlap -> child is not in that part of the tree
+          return None
     elif isinstance(location, str):
       path = location
     else:
@@ -105,7 +113,7 @@ class Node:
 
     parts = pathlib.Path(path).parts
     child_name = parts[0]
-    
+
     for child in self._children:
       if child._name == child_name:
         if len(parts) == 1:
@@ -128,6 +136,9 @@ class Node:
     
     return desc
 
+  def __repr__(self):
+    return str(self)
+
   def removeChild(self, child):
   
     if not child in self._children:
@@ -146,3 +157,34 @@ class Node:
       child.removeAllChildren()
       
     self._children.clear()
+
+  def clean(self):
+  
+    for child in self._children[:]:
+
+      if not child.isIndexed():
+        # the element is flagged as 'not indexed', thus it can be dropped
+        # if its a directory, it should take all of its children with it
+        self.removeChild(child)
+        continue
+
+      if child.isDirectory():
+
+        child.clean()
+
+        # directories without supported files don't need to exist in our tree
+        if len(child.getChildren()) == 0:
+          self.removeChild(child)
+
+  def isIndexed(self):
+    return self._indexed
+  
+  def setIndexed(self):
+    self._indexed = True
+
+  def setNotIndexed(self):
+
+    self._indexed = False
+    
+    for child in self._children:
+      child.setNotIndexed()

@@ -11,5 +11,5 @@ def getConfigDirectory():
 def getLibrariesDirectory():
   return os.path.join(getConfigDirectory(), 'libraries')
 
-def getSupportedFileExtensions(self):
+def getSupportedFileExtensions():
   return ('.mp3', '.mp2', '.mp1', '.ogg', '.wav', '.aiff')
