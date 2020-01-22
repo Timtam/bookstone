@@ -1,6 +1,7 @@
 import uuid
 
 from backends import Backends
+from .book import Book
 from .node import Node
 
 class Library:
@@ -8,6 +9,7 @@ class Library:
   def __init__(self):
 
     self._backend = None
+    self._books = []
     self._uuid = str(uuid.uuid4())
     self._name = ''
     self._tree = Node()
@@ -28,6 +30,7 @@ class Library:
       'backend': self._backend.serialize(),
       'uuid': self._uuid,
       'tree': self._tree.serialize(),
+      'books': [b.serialize() for b in self._books],
     }
 
   def deserialize(self, serialized):
@@ -63,6 +66,15 @@ class Library:
     
     if tree != '':
       self._tree.deserialize(tree)
+
+    books = serialized.get('books', [])
+    
+    for book in books:
+    
+      b = Book()
+      b.deserialize(book)
+      
+      self._books.append(b)
     
   def getUUID(self):
     return self._uuid
@@ -83,3 +95,7 @@ class Library:
 
   def getTree(self):
     return self._tree
+
+  def getBooks(self):
+    return self._books[:]
+    
