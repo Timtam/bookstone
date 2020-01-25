@@ -1,5 +1,6 @@
 from fbs_runtime.application_context.PyQt5 import ApplicationContext
 
+from audio import AudioManager
 from library import LibraryManager
 from storage import Storage
 from ui import WindowController
@@ -15,7 +16,10 @@ if __name__ == '__main__':
     store.setApplicationContext(appctxt)
     manager = LibraryManager()
     store.setLibraryManager(manager)
+    am = AudioManager()
+    store.setAudioManager(am)
     manager.load(getLibrariesDirectory())
+    am.initialize()
 
     controller = WindowController.getInstance()
     controller.pushWindow( MainWindow() )

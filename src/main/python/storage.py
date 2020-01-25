@@ -17,6 +17,7 @@ class Storage:
     Storage.__instance = self
 
     self._application_context = None
+    self._audio_manager = None
     self._library_manager = None
     self._thread_pool = QThreadPool()
 
@@ -34,3 +35,9 @@ class Storage:
 
   def getThreadPool(self):
     return self._thread_pool
+
+  def setAudioManager(self, manager):
+    self._audio_manager = manager
+  
+  def getAudioManager(self):
+    return self._audio_manager
