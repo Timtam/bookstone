@@ -1,6 +1,14 @@
 from collections import UserDict
 
+from .tags import Tags
+
 class TagCollection(UserDict):
+
+  def __init__(self):
+    UserDict.__init__(self)
+    
+    for tag in Tags:
+      self.add(tag())
 
   def __delitem__(self, idx):
     raise IndexError('you cannot remove tags')

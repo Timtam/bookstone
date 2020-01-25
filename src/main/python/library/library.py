@@ -20,6 +20,9 @@ class Library:
   def setBackend(self, backend):
     self._backend = backend
 
+    if self._tree is not None:
+      self._tree.setBackend(self._backend)
+
     if self._name == '':
       self._name = backend.getPath()
   
@@ -55,13 +58,13 @@ class Library:
     backend.deserialize(ser)
     
     self._backend = backend
+    self._tree.setBackend(self._backend)
     self._uuid = serialized.get('uuid', '')
     self._name = serialized.get('name', '')
     
     if not self._uuid:
       raise IOError('no valid UUID found')
 
-    self._tree = Node()
     tree = serialized.get('tree', '')
     
     if tree != '':

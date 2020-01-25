@@ -1,6 +1,8 @@
 import os.path
 import pathlib
 
+from .tag_collection import TagCollection
+
 NODE_DIRECTORY = 0
 NODE_FILE = 1
 
@@ -8,11 +10,13 @@ class Node:
 
   def __init__(self, name = '', parent = None):
     
+    self._backend = None
     self._name = name
     self._type = NODE_DIRECTORY
     self._children = []
     self._parent = parent
     self._indexed = True
+    self._tags = TagCollection()
   
   def setName(self, name):
     self._name = name
@@ -41,6 +45,7 @@ class Node:
       raise IOError('trying to add child {child} to parent {parent}: files cannot have children'.format(child = child, parent = self))
 
     child.setParent(self)
+    child.setBackend(self._backend)
     self._children.append(child)
 
   def getParent(self):
@@ -58,6 +63,9 @@ class Node:
     
     return root
   
+  def isRoot(self):
+    return self._parent is None
+
   def getPath(self):
   
     if self._parent is None:
@@ -76,10 +84,14 @@ class Node:
     for child in self._children:
       ser['children'].append(child.serialize())
     
+    if self.isFile():
+      ser['tags'] = self._tags.serialize()
+
     return ser
   
   def deserialize(self, serialized):
   
+    self.removeAllChildren()
     self._name = serialized.get('name', '')
     self._type = serialized.get('type', '')
     
@@ -90,7 +102,11 @@ class Node:
       node = Node()
       node.deserialize(child)
       node.setParent(self)
+      node.setBackend(self._backend)
       self._children.append(node)
+
+    if self.isFile():
+      self._tags.deserialize(serialized.get('tags', {}))
 
   def findChild(self, location):
   
@@ -188,3 +204,29 @@ class Node:
     
     for child in self._children:
       child.setNotIndexed()
+  
+  def setBackend(self, backend):
+
+    self._backend = backend
+  
+    for child in self._children:
+      child.setBackend(backend)
+
+  def getBackend(self):
+    return self._backend
+  
+  # generator to iterate over all files below this node
+  def iterFiles(self):
+  
+    for child in self._children:
+      if child.isFile():
+        yield child
+      else:
+        yield from child.iterFiles()
+  
+  @property
+  def tags(self):
+  
+    if self.isFile():
+      return self._tags
+    return None
