@@ -1,5 +1,6 @@
 import gc
 import json
+from json.decoder import JSONDecodeError
 import natsort
 import os
 import os.path
@@ -50,7 +51,10 @@ class LibraryManager(QObject):
       
         data = libfile.read()
         
-        ser = json.loads(data)
+        try:
+          ser = json.loads(data)
+        except JSONDecodeError:
+          continue
 
         l = Library()
         l.deserialize(ser)
