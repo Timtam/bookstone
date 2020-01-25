@@ -46,3 +46,7 @@ class Backend(ABC):
   @abstractmethod
   def isFile(self, path):
     raise NotImplementedError()
+
+  @abstractmethod
+  def openFile(self, path):
+    raise NotImplementedError()

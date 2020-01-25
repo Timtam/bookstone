@@ -2,6 +2,8 @@ import os
 import os.path
 
 from backend import Backend
+from exceptions import BackendError
+from .file import LocalBackendFile
 
 class LocalBackend(Backend):
 
@@ -23,3 +25,11 @@ class LocalBackend(Backend):
   
   def isFile(self, path):
     return os.path.isfile(path)
+
+  def openFile(self, path):
+  
+    if not self.isFile(path):
+      raise BackendError('{path} is not a file'.format(path = path))
+    
+    obj = open(path, 'rb')
+    return LocalBackendFile(obj)
