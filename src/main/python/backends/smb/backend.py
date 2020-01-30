@@ -1,3 +1,4 @@
+import os.path
 import smbclient
 import smbclient.path
 import smbprotocol.exceptions
@@ -9,6 +10,7 @@ from .file import SMBBackendFile
 class SMBBackend(Backend):
 
   def __init__(self):
+    Backend.__init__(self)
     self._username = ''
     self._password = ''
 
@@ -51,9 +53,14 @@ class SMBBackend(Backend):
 
   def openFile(self, path):
   
-    if not self.isFile(path):
-      raise BackendError('{path} is not a file'.format(path = path))
-    
+    path = os.path.join(self.getPath(), path)
+
     obj = smbclient.open_file(path, mode = 'rb', username = self._username, password = self._password)
     
     return SMBBackendFile(obj)
+
+  def getStats(self, path):
+  
+    path = os.path.join(self.getPath(), path)
+
+    return smbclient.stat(path, username = self._username, password = self._password)

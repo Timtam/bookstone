@@ -50,3 +50,7 @@ class Backend(ABC):
   @abstractmethod
   def openFile(self, path):
     raise NotImplementedError()
+    
+  @abstractmethod
+  def getStats(self, path):
+    raise NotImplementedError()

@@ -15,6 +15,8 @@ class Node:
     self._type = NODE_DIRECTORY
     self._children = []
     self._parent = parent
+    self._size = -1
+    self._modification_time = -1
     self._indexed = True
     self._tags = TagCollection()
   
@@ -81,12 +83,14 @@ class Node:
       'children': [],
     }
 
+    if self.isFile():
+      ser['tags'] = self._tags.serialize()
+      ser['size'] = self._size
+      ser['mtime'] = self._modification_time
+
     for child in self._children:
       ser['children'].append(child.serialize())
     
-    if self.isFile():
-      ser['tags'] = self._tags.serialize()
-
     return ser
   
   def deserialize(self, serialized):
@@ -94,7 +98,12 @@ class Node:
     self.removeAllChildren()
     self._name = serialized.get('name', '')
     self._type = serialized.get('type', '')
-    
+
+    if self.isFile():
+      self._tags.deserialize(serialized.get('tags', {}))
+      self._size = serialized.get('size', -1)
+      self._modification_time = serialized.get('mtime', -1)
+
     children = serialized.get('children', [])
     
     for child in children:
@@ -104,9 +113,6 @@ class Node:
       node.setParent(self)
       node.setBackend(self._backend)
       self._children.append(node)
-
-    if self.isFile():
-      self._tags.deserialize(serialized.get('tags', {}))
 
   def findChild(self, location):
   
@@ -230,3 +236,31 @@ class Node:
     if self.isFile():
       return self._tags
     return None
+  
+  def getModificationTime(self):
+  
+    if not self.isFile():
+      raise IOError('{node} is not a file'.format(node = self))
+    
+    return self._modification_time
+  
+  def setModificationTime(self, time):
+  
+    if not self.isFile():
+      raise IOError('{node} is not a file'.format(node = self))
+    
+    self._modification_time = time
+  
+  def getSize(self):
+  
+    if not self.isFile():
+      raise IOError('{node} is not a file'.format(node = self))
+    
+    return self._size
+  
+  def setSize(self, size):
+  
+    if not self.isFile():
+      raise IOError('{node} is not a file'.format(node = self))
+    
+    self._size = size

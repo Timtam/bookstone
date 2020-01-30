@@ -1,10 +1,13 @@
 import copy
+import mutagen
 import os.path
 import queue
 from PyQt5.QtCore import QRunnable, pyqtSlot
 
 from .indexer_signal_handler import IndexerSignalHandler
 from .node import Node
+from .tags import Tags
+from storage import Storage
 from utils import getSupportedFileExtensions
 
 class IndexerThread(QRunnable):
@@ -17,6 +20,74 @@ class IndexerThread(QRunnable):
 
     self._libraries = libraries
     self._cancel = False
+
+  def getDefaultValueForTag(self, name):
+  
+    for tag in Tags:
+      if tag.name == name:
+        return tag.default
+    return None
+
+  def getTagValueFromKeys(self, tags, keys):
+  
+    for key in keys:
+      try:
+        if isinstance(tags[key].text, list):
+          return tags[key].text[0]
+        return tags[key].text
+      except KeyError:
+        continue
+    return None
+        
+  def getTitleTag(self, tags):
+  
+    keys = (
+      'TIT2',
+    )
+    
+    tag = self.getTagValueFromKeys(tags, keys)
+
+    if tag is None:
+      return self.getDefaultValueForTag('title')
+    return tag
+
+  def getAuthorTag(self, tags):
+  
+    keys = (
+      'TPE1',
+    )
+    
+    tag = self.getTagValueFromKeys(tags, keys)
+
+    if tag is None:
+      return self.getDefaultValueForTag('author')
+    return tag
+
+  def indexFiles(self, library, tree):
+  
+    backend = library.getBackend()
+
+    # iterating over all files within the directory tree
+    for node in tree.iterFiles():
+    
+      self.signals.statusChanged.emit(library, 'reading stats from {name}'.format(name = node.getName()))
+      
+      stats = backend.getStats(node.getPath())
+
+      if stats.st_size != node.getSize() or stats.st_mtime != node.getModificationTime():
+
+        self.signals.statusChanged.emit(library, 'reading tags from {name}'.format(name = node.getName()))
+      
+        # creating the stream
+        file = backend.openFile(node.getPath())
+
+        tags_reader = mutagen.File(file)
+        node.tags['title'].value = self.getTitleTag(tags_reader.tags)
+        node.tags['author'].value = self.getAuthorTag(tags_reader.tags)
+        file.close()
+      
+        node.setModificationTime(stats.st_mtime)
+        node.setSize(stats.st_size)
 
   @pyqtSlot()
   def run(self):
@@ -89,6 +160,7 @@ class IndexerThread(QRunnable):
         next.setIndexed()
 
       tree.clean()
+      self.indexFiles(lib, tree)
 
       self.signals.result.emit(lib, tree)
           

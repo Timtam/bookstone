@@ -28,8 +28,13 @@ class LocalBackend(Backend):
 
   def openFile(self, path):
   
-    if not self.isFile(path):
-      raise BackendError('{path} is not a file'.format(path = path))
-    
+    path = os.path.join(self.getPath(), path)
+
     obj = open(path, 'rb')
     return LocalBackendFile(obj)
+
+  def getStats(self, path):
+  
+    path = os.path.join(self.getPath(), path)
+
+    return os.stat(path)
