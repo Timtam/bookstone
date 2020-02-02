@@ -1,3 +1,4 @@
+import ftputil.error
 import os
 
 from backend_file import BackendFile
@@ -42,8 +43,16 @@ class FTPBackendFile(BackendFile):
     return data
   
   def close(self):
-    self._file.close()
-    self._file = None
+
+    if self._file is not None:
+
+      try:
+        self._file.close()
+      except ftputil.error.FTPIOError:
+        pass
+
+      self._file = None
+
     self._pos = 0
 
   def tell(self):
