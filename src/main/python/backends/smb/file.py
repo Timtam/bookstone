@@ -15,4 +15,4 @@ class SMBBackendFile(BackendFile):
     return self._file.tell()
   
   def seek(self, offset, whence = 0):
-    self._file.seek(offset, whence)
+    return self._file.seek(offset, whence)

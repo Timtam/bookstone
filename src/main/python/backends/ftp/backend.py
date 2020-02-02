@@ -102,8 +102,7 @@ class FTPBackend(Backend):
   @Backend.withPosixPath
   def openFile(self, path, host):
   
-    obj = host.open(path, 'rb')
-    return FTPBackendFile(obj)
+    return FTPBackendFile(host, path)
 
   @withHost
   @Backend.withPosixPath
