@@ -27,10 +27,10 @@ class Backend(ABC):
 
   def setPath(self, path):
 
-    self._path = Path(path)
+    self._path = Path(os.path.normpath(path))
 
   def getPath(self):
-    return str(self._path)
+    return self._path.as_posix()
 
   @staticmethod
   @abstractmethod
