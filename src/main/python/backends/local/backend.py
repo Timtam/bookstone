@@ -17,24 +17,25 @@ class LocalBackend(Backend):
   def deserialize(self, serialized):
     Backend.deserialize(self, serialized)
 
+  @Backend.withPath
   def listDirectory(self, dir):
     return os.listdir(dir)
 
+  @Backend.withPath
   def isDirectory(self, path):
     return os.path.isdir(path)
   
+  @Backend.withPath
   def isFile(self, path):
     return os.path.isfile(path)
 
+  @Backend.withPath
   def openFile(self, path):
   
-    path = os.path.join(self.getPath(), path)
-
     obj = open(path, 'rb')
     return LocalBackendFile(obj)
 
+  @Backend.withPath
   def getStats(self, path):
   
-    path = os.path.join(self.getPath(), path)
-
     return os.stat(path)

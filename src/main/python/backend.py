@@ -1,22 +1,36 @@
 from abc import ABC, abstractmethod
 import os.path
+from pathlib import Path
 
 class Backend(ABC):
 
   def __init__(self):
-    self._path = ''
+    self._path = Path('')
+
+  def withPath(f):
+    def helper(self, path, *args, **kwargs):
+
+      path = self._path / path
+
+      return f(self, os.path.normpath(str(path)), *args, **kwargs)
+    return helper
+
+  def withPosixPath(f):
+    def helper(self, path, *args, **kwargs):
+
+      path = self._path / path
+
+      path = Path(os.path.normpath(str(path)))
+
+      return f(self, path.as_posix(), *args, **kwargs)
+    return helper
 
   def setPath(self, path):
 
-    path = os.path.normpath(path)
-    
-    if not path.endswith(os.path.sep):
-      path = path + os.path.sep
-
-    self._path = path
+    self._path = Path(path)
 
   def getPath(self):
-    return self._path
+    return str(self._path)
 
   @staticmethod
   @abstractmethod
@@ -27,7 +41,7 @@ class Backend(ABC):
   def serialize(self):
     return {
       'name': self.getName(),
-      'path': self._path,
+      'path': self.getPath(),
     }
   
   @abstractmethod

@@ -17,7 +17,7 @@ class BackendDialog:
     backend = self.getBackend()
     
     try:
-      content = backend.listDirectory(backend.getPath())
+      content = backend.listDirectory('.')
     except BackendError as exc:
       box = QMessageBox()
       box.setText("Error connecting using the provided information.")

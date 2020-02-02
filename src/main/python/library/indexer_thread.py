@@ -120,7 +120,7 @@ class IndexerThread(QRunnable):
 
         self.signals.statusChanged.emit(lib, 'Processing {path}'.format(path=next_path))
         
-        dir_list = backend.listDirectory(os.path.join(backend.getPath(), next_path))
+        dir_list = backend.listDirectory(next_path)
         
         for dir in dir_list:
           
@@ -134,7 +134,7 @@ class IndexerThread(QRunnable):
             new = Node()
             new.setName(dir)
             
-          if backend.isDirectory(os.path.join(backend.getPath(), next_path, dir)):
+          if backend.isDirectory(os.path.join(next_path, dir)):
             new.setDirectory()
           else:
             new.setFile()
