@@ -1,4 +1,4 @@
-from PyQt5.QtCore import QThreadPool
+from threads import ThreadPool
 
 class Storage:
   __instance = None
@@ -19,7 +19,7 @@ class Storage:
     self._application_context = None
     self._audio_manager = None
     self._library_manager = None
-    self._thread_pool = QThreadPool()
+    self._thread_pool = ThreadPool()
 
   def getApplicationContext(self):
     return self._application_context

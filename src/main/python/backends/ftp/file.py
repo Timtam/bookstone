@@ -1,9 +1,12 @@
 import ftputil.error
 import os
+from PyQt5.QtCore import QMutex
 
 from backend_file import BackendFile
 
 class FTPBackendFile(BackendFile):
+
+  _file_mutex = QMutex()
 
   def __init__(self, host, path):
     self._file = None
@@ -18,7 +21,9 @@ class FTPBackendFile(BackendFile):
   def _get_file(self, rest = None):
 
     if self._file is None:
+      self._file_mutex.lock()
       self._file = self._host.open(self._path, 'rb', rest = rest)
+      self._file_mutex.unlock()
 
       if rest:
         self._pos = rest

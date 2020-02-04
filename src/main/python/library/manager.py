@@ -7,25 +7,29 @@ import os.path
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from . import Library
-from .indexer_thread import IndexerThread
 from .node import Node
 from storage import Storage
+from threads.folder_structure_reader import FolderStructureReaderThread
+from threads.tag_reader import TagReaderThread
 from utils import getLibrariesDirectory
 
+# keeps track of all libraries
+# it also manages the library indexing process by enqueuing threads where necessary
 class LibraryManager(QObject):
 
-  indexerFinished = pyqtSignal(bool)
-  indexerResult = pyqtSignal(Library, Node)
-  indexerStarted = pyqtSignal()
-  indexerStatusChanged = pyqtSignal(Library, str)
+  indexingFinished = pyqtSignal(bool)
+  #indexerResult = pyqtSignal(Library, Node)
+  indexingStarted = pyqtSignal()
+  #indexerStatusChanged = pyqtSignal(Library, str)
 
   def __init__(self):
 
     QObject.__init__(self)
 
     self._libraries = []
-    self._indexer = None
     
+    Storage.getInstance().getThreadPool().signals.threadFinished.connect(self._thread_finished)
+
   def addLibrary(self, lib):
     self._libraries.append(lib)
 
@@ -95,38 +99,36 @@ class LibraryManager(QObject):
       os.remove(os.path.join(directory, file))
 
   def isIndexing(self):
-    return self._indexer is not None
+    return Storage.getInstance().getThreadPool().currentThreadCount > 0 or Storage.getInstance().getThreadPool().waitingThreadCount > 0 
 
   def startIndexing(self):
   
     if self.isIndexing():
       return False
     
-    self._indexer = IndexerThread(self.getLibraries())
-    
-    self._indexer.signals.statusChanged.connect(self._indexer_status_changed)
-    self._indexer.signals.result.connect(self._indexer_result)
-    self._indexer.signals.finished.connect(self._indexer_finished)
+    pool = Storage.getInstance().getThreadPool()
 
-    Storage.getInstance().getThreadPool().start(self._indexer)
-    self.indexerStarted.emit()
+    for lib in self._libraries:
+      thread = FolderStructureReaderThread(lib)
+      
+      thread.signals.result.connect(self._thread_result)
+
+      pool.enqueue(thread)
+
+    self.indexingStarted.emit()
 
   def cancelIndexing(self):
   
-    if self._indexer is None:
+    if not self.isIndexing():
       return
     
-    self._indexer.cancel()
+    Storage.getInstance().getThreadPool().cancelAll()
     
-    self._indexer.signals.statusChanged.disconnect(self._indexer_status_changed)
-    self._indexer.signals.result.disconnect(self._indexer_result)
-    self._indexer.signals.finished.disconnect(self._indexer_finished)
-
-    self._indexer = None
-
-  def _indexer_result(self, lib, tree):
+  def _thread_result(self, params):
     
-    self.indexerResult.emit(lib, tree)
+    lib, tree = params
+
+    #self.indexerResult.emit(lib, tree)
 
     if lib in self._libraries:
 
@@ -137,14 +139,23 @@ class LibraryManager(QObject):
       for child in tree.getChildren():
         old_tree.addChild(child)
 
+      pool = Storage.getInstance().getThreadPool()
+
+      for file in old_tree.iterFiles():
+      
+        thread = TagReaderThread(file)
+
+        pool.enqueue(thread)
+
+  def _thread_finished(self, thread, success):
+
+    pool = Storage.getInstance().getThreadPool()
+    
+    if pool.currentThreadCount == 0 and pool.waitingThreadCount == 0:
+
       self.save(getLibrariesDirectory())
 
-  def _indexer_finished(self, success):
-
-    self.indexerFinished.emit(success)
-
-    if success:
-      self.cancelIndexing()
+      self.indexingFinished.emit(success)
 
   def _indexer_status_changed(self, lib, msg):
     self.indexerStatusChanged.emit(lib, msg)

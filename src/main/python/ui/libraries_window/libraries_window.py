@@ -64,8 +64,8 @@ class LibrariesWindow(Window):
     self.setLayout(self.layout)
 
     manager = Storage.getInstance().getLibraryManager()
-    manager.indexerStarted.connect(self.indexerHandler)
-    manager.indexerFinished.connect(self.indexerHandler)
+    manager.indexingStarted.connect(self.indexingHandler)
+    manager.indexingFinished.connect(self.indexingHandler)
 
     self.initializeIndexingButton()
 
@@ -135,12 +135,12 @@ class LibrariesWindow(Window):
   def close(self):
 
     manager = Storage.getInstance().getLibraryManager()
-    manager.indexerStarted.disconnect(self.indexerHandler)
-    manager.indexerFinished.disconnect(self.indexerHandler)
+    manager.indexingStarted.disconnect(self.indexingHandler)
+    manager.indexingFinished.disconnect(self.indexingHandler)
     
     self.closed.emit()
 
-  def indexerHandler(self, success = None):
+  def indexingHandler(self, success = None):
     self.initializeIndexingButton()
 
   def startIndexing(self):
