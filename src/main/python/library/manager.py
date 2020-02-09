@@ -1,4 +1,5 @@
 import gc
+import hashlib
 import json
 from json.decoder import JSONDecodeError
 import natsort
@@ -27,18 +28,24 @@ class LibraryManager(QObject):
     QObject.__init__(self)
 
     self._libraries = []
+    self._library_hashes = []
     
     Storage.getInstance().getThreadPool().signals.threadFinished.connect(self._thread_finished)
 
   def addLibrary(self, lib):
     self._libraries.append(lib)
+    self._library_hashes.append(b'')
 
   def getLibraries(self):
 
     return natsort.natsorted(self._libraries[:], key = lambda l: l.getUUID())
 
   def removeLibrary(self, lib):
-    self._libraries.remove(lib)
+
+    i = self._libraries.index(lib)
+
+    del self._libraries[i]
+    del self._library_hashes[i]
        
   def load(self, directory):
   
@@ -64,6 +71,10 @@ class LibraryManager(QObject):
         l.deserialize(ser)
         self._libraries.append(l)
 
+        hash = hashlib.sha256()
+        hash.update(data.encode('utf-8'))
+        self._library_hashes.append(hash.digest())
+
   def save(self, directory):
     
     if not os.path.exists(directory):
@@ -78,15 +89,30 @@ class LibraryManager(QObject):
     except FileNotFoundError:
       pass
 
-    for lib in self._libraries:
+    for i, lib in enumerate(self._libraries):
       
       libpath = os.path.join(directory, lib.getUUID() + '.json')
       
+      ser = lib.serialize()
+      data = json.dumps(ser, indent = 2)
+        
+      # make sure we don't save if a file with the same content already exists
+      if os.path.exists(libpath):
+
+        hash = hashlib.sha256()
+        hash.update(data.encode('utf-8'))
+        
+        if self._library_hashes[i] == hash.digest():
+
+          try:
+            libfiles.remove(lib.getUUID() + '.json')
+          except ValueError:
+            pass
+
+          continue
+
       with open(libpath, 'w') as libfile:
       
-        ser = lib.serialize()
-        data = json.dumps(ser, indent = 2)
-        
         libfile.write(data)
 
       try:
