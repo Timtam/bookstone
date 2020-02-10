@@ -18,6 +18,7 @@ class Storage:
 
     self._application_context = None
     self._audio_manager = None
+    self._configuration_manager = None
     self._library_manager = None
     self._thread_pool = ThreadPool()
 
@@ -41,3 +42,9 @@ class Storage:
   
   def getAudioManager(self):
     return self._audio_manager
+    
+  def setConfigurationManager(self, manager):
+    self._configuration_manager = manager
+  
+  def getConfigurationManager(self):
+    return self._configuration_manager
