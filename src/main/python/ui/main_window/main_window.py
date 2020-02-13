@@ -9,6 +9,7 @@ from ui import WindowController
 from storage import Storage
 from .. import Window
 from ui.libraries_window import LibrariesWindow
+from ui.settings_window import SettingsWindow
 
 class MainWindow(Window):
 
@@ -24,6 +25,10 @@ class MainWindow(Window):
     act.triggered.connect(self.showLibrariesWindow)
     self.file_menu.addAction(act)
 
+    act = QAction('&Settings', self.file_menu)
+    act.triggered.connect(self.showSettingsWindow)
+    self.file_menu.addAction(act)
+
     act = QAction('&Exit', self.file_menu)
     act.triggered.connect(self.exit)
     self.file_menu.addAction(act)
@@ -34,3 +39,7 @@ class MainWindow(Window):
   def showLibrariesWindow(self):
   
     WindowController.getInstance().pushWindow(LibrariesWindow())
+
+  def showSettingsWindow(self):
+  
+    WindowController.getInstance().pushWindow(SettingsWindow())

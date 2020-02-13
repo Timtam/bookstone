@@ -13,7 +13,7 @@ class Window(QWidget):
   
     manager = Storage.getInstance().getLibraryManager()
     
-    if not manager.isIndexing():
+    if not manager.isIndexing() or not Storage.getInstance().getConfigurationManager().askBeforeExitWhenIndexing:
       event.accept()
       return
     

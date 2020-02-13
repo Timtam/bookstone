@@ -21,7 +21,7 @@ class ConfigurationManager:
 
   def init(self):
 
-    self._add('askBeforeCloseWhenIndexing', True)
+    self._add('askBeforeExitWhenIndexing', True)
   
   def __getattribute__(self, name):
   
