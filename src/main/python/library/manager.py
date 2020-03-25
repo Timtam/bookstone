@@ -11,7 +11,6 @@ from . import Library
 from .node import Node
 from storage import Storage
 from threads.folder_structure_reader import FolderStructureReaderThread
-from threads.tag_reader import TagReaderThread
 from utils import getLibrariesDirectory
 
 # keeps track of all libraries
@@ -164,14 +163,6 @@ class LibraryManager(QObject):
 
       for child in tree.getChildren():
         old_tree.addChild(child)
-
-      pool = Storage.getInstance().getThreadPool()
-
-      for file in old_tree.iterFiles():
-      
-        thread = TagReaderThread(file)
-
-        pool.enqueue(thread)
 
   def _thread_finished(self, thread, success):
 

@@ -1,8 +1,6 @@
 import os.path
 import pathlib
 
-from .tag_collection import TagCollection
-
 NODE_DIRECTORY = 0
 NODE_FILE = 1
 
@@ -18,7 +16,6 @@ class Node:
     self._size = -1
     self._modification_time = -1
     self._indexed = True
-    self._tags = TagCollection()
   
   def setName(self, name):
     self._name = name
@@ -84,7 +81,6 @@ class Node:
     }
 
     if self.isFile():
-      ser['tags'] = self._tags.serialize()
       ser['size'] = self._size
       ser['mtime'] = self._modification_time
 
@@ -100,7 +96,6 @@ class Node:
     self._type = serialized.get('type', '')
 
     if self.isFile():
-      self._tags.deserialize(serialized.get('tags', {}))
       self._size = serialized.get('size', -1)
       self._modification_time = serialized.get('mtime', -1)
 
@@ -229,13 +224,6 @@ class Node:
         yield child
       else:
         yield from child.iterFiles()
-  
-  @property
-  def tags(self):
-  
-    if self.isFile():
-      return self._tags
-    return None
   
   def getModificationTime(self):
   
