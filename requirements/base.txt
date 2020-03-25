@@ -1,6 +1,5 @@
-fbs==0.8.4
+fbs==0.8.6
 ftputil==3.4
 natsort==7.0.0
-PyInstaller==3.5
 PyQt5==5.9.2
 smbprotocol==1.0.1
