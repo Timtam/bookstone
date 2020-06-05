@@ -1,55 +1,53 @@
 from PyQt5.QtWidgets import (
-  QDialog,
-  QDialogButtonBox,
   QLabel, 
   QLineEdit,
-  QHBoxLayout)
+  QHBoxLayout,
+  QWidget)
 
 from backends.smb import SMBBackend
 from ..backend_dialog import BackendDialog
 
-class SMBBackendDialog(QDialog, BackendDialog):
+class SMBBackendDialog(BackendDialog):
 
   def __init__(self, *args, **kwargs):
-    QDialog.__init__(self, *args, **kwargs)
     BackendDialog.__init__(self)
 
-    self.setWindowTitle('Bookstone - SMB Library')
+  def build(self):
 
-    self.layout = QHBoxLayout(self)
+    connection_tab = QWidget(self)
 
-    self.path_label = QLabel('Path:', self)
-    self.layout.addWidget(self.path_label)
+    layout = QHBoxLayout(connection_tab)
 
-    self.path_input = QLineEdit(self)
-    self.path_input.textChanged.connect(self.validate)
-    self.path_label.setBuddy(self.path_input)
-    self.layout.addWidget(self.path_input)
+    path_label = QLabel('Path:', connection_tab)
+    layout.addWidget(path_label)
 
-    self.username_label = QLabel('Username:', self)
-    self.layout.addWidget(self.username_label)
+    self.path_input = QLineEdit(connection_tab)
+    self.path_input.textChanged.connect(self.update)
+    path_label.setBuddy(self.path_input)
+    layout.addWidget(self.path_input)
 
-    self.username_input = QLineEdit(self)
-    self.username_input.textChanged.connect(self.validate)
-    self.username_label.setBuddy(self.username_input)
-    self.layout.addWidget(self.username_input)
+    username_label = QLabel('Username:', connection_tab)
+    layout.addWidget(username_label)
 
-    self.password_label = QLabel('Password:', self)
-    self.layout.addWidget(self.password_label)
+    self.username_input = QLineEdit(connection_tab)
+    self.username_input.textChanged.connect(self.update)
+    username_label.setBuddy(self.username_input)
+    layout.addWidget(self.username_input)
 
-    self.password_input = QLineEdit(self)
+    password_label = QLabel('Password:', connection_tab)
+    layout.addWidget(password_label)
+
+    self.password_input = QLineEdit(connection_tab)
     self.password_input.setEchoMode(QLineEdit.Password)
-    self.password_input.textChanged.connect(self.validate)
-    self.password_label.setBuddy(self.password_input)
-    self.layout.addWidget(self.password_input)
+    self.password_input.textChanged.connect(self.update)
+    password_label.setBuddy(self.password_input)
+    layout.addWidget(self.password_input)
 
-    self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
-    self.button_box.accepted.connect(self.accept)
-    self.button_box.rejected.connect(self.reject)
-    self.button_box.button(QDialogButtonBox.Ok).setEnabled(False)
-    self.layout.addWidget(self.button_box)
+    connection_tab.setLayout(layout)
 
-    self.setLayout(self.layout)
+    return {
+      'Connection': connection_tab
+    }
 
   def getBackend(self):
 
@@ -61,8 +59,10 @@ class SMBBackendDialog(QDialog, BackendDialog):
 
     return b
   
-  def validate(self):
+  def isValid(self):
   
+    valid = BackendDialog.isValid(self)
+
     username_present = False
     password_present = False
     unc_path_present = False
@@ -88,15 +88,14 @@ class SMBBackendDialog(QDialog, BackendDialog):
       except ValueError:
         pass
 
-    enable = username_present and password_present and unc_path_present
+    enable = valid and username_present and password_present and unc_path_present
 
-    self.button_box.button(QDialogButtonBox.Ok).setEnabled(enable)
-    
+    return enable
+
   @staticmethod
   def getName():
     return SMBBackend.getName()
   
   def accept(self):
     if self.testConnection():
-      return QDialog.accept(self)
-      
+      return BackendDialog.accept(self)

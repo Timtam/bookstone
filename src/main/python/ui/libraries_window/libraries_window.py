@@ -72,6 +72,7 @@ class LibrariesWindow(Window):
   def showAddDialog(self, dialog):
 
     dlg = dialog(self)
+    dlg.setup()
     success = dlg.exec_()
 
     if not success:

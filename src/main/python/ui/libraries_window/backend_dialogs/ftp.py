@@ -1,80 +1,78 @@
 from PyQt5.QtWidgets import (
   QCheckBox,
-  QDialog,
-  QDialogButtonBox,
   QLabel, 
   QLineEdit,
-  QHBoxLayout)
+  QHBoxLayout,
+  QWidget)
 from PyQt5.QtGui import QIntValidator
 
 from backends.ftp import FTPBackend
 from ..backend_dialog import BackendDialog
 
-class FTPBackendDialog(QDialog, BackendDialog):
+class FTPBackendDialog(BackendDialog):
 
   def __init__(self, *args, **kwargs):
-    QDialog.__init__(self, *args, **kwargs)
     BackendDialog.__init__(self)
 
-    self.setWindowTitle('Bookstone - FTP Library')
+  def build(self):
 
-    self.layout = QHBoxLayout(self)
+    connection_tab = QWidget(self)
 
-    self.host_label = QLabel('Host:', self)
-    self.layout.addWidget(self.host_label)
+    layout = QHBoxLayout(connection_tab)
 
-    self.host_input = QLineEdit(self)
-    self.host_input.textChanged.connect(self.validate)
-    self.host_label.setBuddy(self.host_input)
-    self.layout.addWidget(self.host_input)
+    host_label = QLabel('Host:', connection_tab)
+    layout.addWidget(host_label)
 
-    self.username_label = QLabel('Username:', self)
-    self.layout.addWidget(self.username_label)
+    self.host_input = QLineEdit(connection_tab)
+    self.host_input.textChanged.connect(self.update)
+    host_label.setBuddy(self.host_input)
+    layout.addWidget(self.host_input)
 
-    self.username_input = QLineEdit(self)
-    self.username_input.textChanged.connect(self.validate)
-    self.username_label.setBuddy(self.username_input)
-    self.layout.addWidget(self.username_input)
+    username_label = QLabel('Username:', connection_tab)
+    layout.addWidget(username_label)
 
-    self.password_label = QLabel('Password:', self)
-    self.layout.addWidget(self.password_label)
+    self.username_input = QLineEdit(connection_tab)
+    self.username_input.textChanged.connect(self.update)
+    username_label.setBuddy(self.username_input)
+    layout.addWidget(self.username_input)
 
-    self.password_input = QLineEdit(self)
+    password_label = QLabel('Password:', connection_tab)
+    layout.addWidget(password_label)
+
+    self.password_input = QLineEdit(connection_tab)
     self.password_input.setEchoMode(QLineEdit.Password)
-    self.password_input.textChanged.connect(self.validate)
-    self.password_label.setBuddy(self.password_input)
-    self.layout.addWidget(self.password_input)
+    self.password_input.textChanged.connect(self.update)
+    password_label.setBuddy(self.password_input)
+    layout.addWidget(self.password_input)
 
-    self.port_label = QLabel('Port:', self)
-    self.layout.addWidget(self.port_label)
+    port_label = QLabel('Port:', connection_tab)
+    layout.addWidget(port_label)
 
-    self.port_input = QLineEdit(self)
+    self.port_input = QLineEdit(connection_tab)
     self.port_input.setText(str(21))
-    validator = QIntValidator(self)
+    validator = QIntValidator(connection_tab)
     validator.setBottom(1)
     self.port_input.setValidator(validator)
-    self.port_label.setBuddy(self.port_input)
-    self.layout.addWidget(self.port_input)
+    port_label.setBuddy(self.port_input)
+    layout.addWidget(self.port_input)
 
-    self.path_label = QLabel('Path:', self)
-    self.layout.addWidget(self.path_label)
+    path_label = QLabel('Path:', connection_tab)
+    layout.addWidget(path_label)
 
-    self.path_input = QLineEdit(self)
+    self.path_input = QLineEdit(connection_tab)
     self.path_input.setText('/')
-    self.path_input.textChanged.connect(self.validate)
-    self.path_label.setBuddy(self.path_input)
-    self.layout.addWidget(self.path_input)
+    self.path_input.textChanged.connect(self.update)
+    path_label.setBuddy(self.path_input)
+    layout.addWidget(self.path_input)
 
-    self.ftps_checkbox = QCheckBox('FTPS', self)
-    self.layout.addWidget(self.ftps_checkbox)
+    self.ftps_checkbox = QCheckBox('FTPS', connection_tab)
+    layout.addWidget(self.ftps_checkbox)
 
-    self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
-    self.button_box.accepted.connect(self.accept)
-    self.button_box.rejected.connect(self.reject)
-    self.button_box.button(QDialogButtonBox.Ok).setEnabled(False)
-    self.layout.addWidget(self.button_box)
+    connection_tab.setLayout(layout)
 
-    self.setLayout(self.layout)
+    return {
+      'Connection': connection_tab
+    }
 
   def getBackend(self):
 
@@ -89,8 +87,10 @@ class FTPBackendDialog(QDialog, BackendDialog):
 
     return b
   
-  def validate(self):
+  def isValid(self):
   
+    valid = BackendDialog.isValid(self)
+
     host_present = False
     username_present = False
     password_present = False
@@ -108,15 +108,15 @@ class FTPBackendDialog(QDialog, BackendDialog):
     if len(self.path_input.text()) > 0:
       path_present = True
 
-    enable = username_present and password_present and path_present and host_present
+    enable = valid and username_present and password_present and path_present and host_present
 
-    self.button_box.button(QDialogButtonBox.Ok).setEnabled(enable)
-    
+    return enable
+
   @staticmethod
   def getName():
     return FTPBackend.getName()
   
   def accept(self):
     if self.testConnection():
-      return QDialog.accept(self)
+      return BackendDialog.accept(self)
       
