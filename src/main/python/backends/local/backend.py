@@ -11,12 +11,6 @@ class LocalBackend(Backend):
   def getName():
     return 'Local'
 
-  def serialize(self):
-    return Backend.serialize(self)
-  
-  def deserialize(self, serialized):
-    Backend.deserialize(self, serialized)
-
   @Backend.withPath
   def listDirectory(self, dir):
     return os.listdir(dir)
