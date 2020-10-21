@@ -1,1 +1,1 @@
-from .backend import FTPBackend
+from .backend import FTPBackend  # noqa: F401

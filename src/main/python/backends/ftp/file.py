@@ -1,80 +1,89 @@
-import ftputil.error
 import os
+from typing import Any
+
+import ftputil.error
 from PyQt5.QtCore import QMutex
 
 from backend_file import BackendFile
 
+
 class FTPBackendFile(BackendFile):
 
-  _file_mutex = QMutex()
+    _file: Any
+    _file_mutex: QMutex = QMutex()
+    _host: ftputil.FTPHost
+    _path: str
+    _pos: int
+    _size: int
 
-  def __init__(self, host, path):
-    self._file = None
-    self._host = host
-    self._path = path
-    self._size = 0
-    self._pos = 0
+    def __init__(self, host: ftputil.FTPHost, path: str):
 
-    stats = host.stat(path)
-    self._size = stats.st_size
-
-  def _get_file(self, rest = None):
-
-    if self._file is None:
-      self._file_mutex.lock()
-      self._file = self._host.open(self._path, 'rb', rest = rest)
-      self._file_mutex.unlock()
-
-      if rest:
-        self._pos = rest
-      else:
+        self._file = None
+        self._host = host
+        self._path = path
+        self._size = 0
         self._pos = 0
-    return self._file
 
-  def read(self, bytes = -1):
+        stats: Any = host.stat(path)
+        self._size = stats.st_size
 
-    if bytes == 0:
-      return b''
+    def _get_file(self, rest=None):
 
-    if bytes < 0 or self._pos + bytes > self._size:
-      bytes = self._size - self._pos
+        if self._file is None:
+            self._file_mutex.lock()
+            self._file = self._host.open(self._path, "rb", rest=rest)
+            self._file_mutex.unlock()
 
-    file = self._get_file()
+            if rest:
+                self._pos = rest
+            else:
+                self._pos = 0
+        return self._file
 
-    data = file.read(bytes)
+    def read(self, length: int = -1) -> bytes:
 
-    self._pos += len(data)
-    
-    return data
-  
-  def close(self):
+        if length == 0:
+            return b""
 
-    if self._file is not None:
+        if length < 0 or self._pos + length > self._size:
+            length = self._size - self._pos
 
-      try:
-        self._file.close()
-      except ftputil.error.FTPIOError:
-        pass
+        file: Any = self._get_file()
 
-      self._file = None
+        data: bytes = file.read(length)
 
-    self._pos = 0
+        self._pos += len(data)
 
-  def tell(self):
-    return self._pos
-  
-  def seek(self, offset, whence = 0):
+        return data
 
-    if whence == os.SEEK_CUR:
-      offset = self._pos + offset
-    elif whence == os.SEEK_END:
-      offset = self._size + offset - 1
+    def close(self) -> None:
 
-    if offset == self._pos:
-      return self._pos
+        if self._file is not None:
 
-    self.close()
+            try:
+                self._file.close()
+            except ftputil.error.FTPIOError:
+                pass
 
-    self._get_file(offset)
+            self._file = None
 
-    return self._pos
+        self._pos = 0
+
+    def tell(self) -> int:
+        return self._pos
+
+    def seek(self, offset: int, whence: int = 0) -> int:
+
+        if whence == os.SEEK_CUR:
+            offset = self._pos + offset
+        elif whence == os.SEEK_END:
+            offset = self._size + offset - 1
+
+        if offset == self._pos:
+            return self._pos
+
+        self.close()
+
+        self._get_file(offset)
+
+        return self._pos

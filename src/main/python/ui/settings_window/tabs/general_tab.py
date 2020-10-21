@@ -1,30 +1,39 @@
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (
-  QCheckBox,
-  QLabel,
-  QWidget,
-  QVBoxLayout)
+from typing import Any
 
+from PyQt5.QtCore import Qt
+from PyQt5.QtWidgets import QCheckBox, QVBoxLayout, QWidget
+
+from configuration_manager import ConfigurationManager
 from storage import Storage
+
 
 class GeneralTab(QWidget):
 
-  def __init__(self, *args, **kwargs):
-    QWidget.__init__(self, *args, **kwargs)
+    ask_on_exit_when_indexing: QCheckBox
+    layout: QVBoxLayout
 
-    self.layout = QVBoxLayout(self)
-    
-    self.ask_on_exit_when_indexing = QCheckBox('Ask before exiting when an indexing operation is currently in progress', self)
-    self.ask_on_exit_when_indexing.stateChanged.connect(self.askOnExitWhenIndexingChanged)
-    self.layout.addWidget(self.ask_on_exit_when_indexing)
-    
-    config = Storage.getInstance().getConfigurationManager()
-    
-    self.ask_on_exit_when_indexing.setChecked(config.askBeforeExitWhenIndexing)
-  
-  def askOnExitWhenIndexingChanged(self, state):
-  
-    if state == Qt.Checked:
-      Storage.getInstance().getConfigurationManager().askBeforeExitWhenIndexing = True
-    else:
-      Storage.getInstance().getConfigurationManager().askBeforeExitWhenIndexing = False
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+
+        super().__init__(*args, **kwargs)
+
+        self.layout = QVBoxLayout(self)
+
+        self.ask_on_exit_when_indexing = QCheckBox(
+            "Ask before exiting when an indexing operation is currently in progress",
+            self,
+        )
+        self.ask_on_exit_when_indexing.stateChanged.connect(
+            self.askOnExitWhenIndexingChanged
+        )
+        self.layout.addWidget(self.ask_on_exit_when_indexing)
+
+        config: ConfigurationManager = Storage().getConfigurationManager()
+
+        self.ask_on_exit_when_indexing.setChecked(config.askBeforeExitWhenIndexing)
+
+    def askOnExitWhenIndexingChanged(self, state: int):
+
+        if state == Qt.Checked:
+            Storage().getConfigurationManager().askBeforeExitWhenIndexing = True
+        else:
+            Storage().getConfigurationManager().askBeforeExitWhenIndexing = False

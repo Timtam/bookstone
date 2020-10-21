@@ -1,92 +1,109 @@
 import copy
 import os.path
 import queue
+from typing import List, Optional, cast
+
 from PyQt5.QtCore import pyqtSlot
 
-from .priorizable_thread import PriorizableThread
+from backend import Backend
+from library.library import Library
 from library.node import Node
-from storage import Storage
 from utils import getSupportedFileExtensions
+
+from .priorizable_thread import PriorizableThread
+
 
 class FolderStructureReaderThread(PriorizableThread):
 
-  def __init__(self, library):
+    _library: Library
+    priority: int
 
-    PriorizableThread.__init__(self)
+    def __init__(self, library: Library) -> None:
 
-    self._library = library
-    self.priority = 0
+        super().__init__()
 
-  @pyqtSlot()
-  def run(self):
+        self._library = library
+        self.priority = 0
 
-    lib = self._library
+    @pyqtSlot()
+    def run(self) -> None:
 
-    #self.signals.statusChanged.emit(lib, 'Starting index operation')
+        lib: Library = self._library
 
-    tree = copy.deepcopy(lib.getTree())
+        # self.signals.statusChanged.emit(lib, 'Starting index operation')
 
-    tree.setNotIndexed()
+        tree: Node = copy.deepcopy(lib.getTree())
 
-    backend = lib.getBackend()
-      
-    open = queue.Queue()
-      
-    open.put(tree)
-      
-    while not open.empty():
-        
-      if self._cancel:
-        self.signals.finished.emit(False)
-        return
+        tree.setNotIndexed()
 
-      next = open.get()
-        
-      next_path = next.getPath()
+        backend: Backend = cast(Backend, lib.getBackend())
 
-      #self.signals.statusChanged.emit(lib, 'Processing {path}'.format(path=next_path))
-        
-      dir_list = backend.listDirectory(next_path)
-        
-      for dir in dir_list:
-          
-        if self._cancel:
-          self.signals.finished.emit(False)
-          return
+        open: queue.Queue = queue.Queue()
 
-        new = tree.findChild(os.path.join(next_path, dir))
-          
-        if new is None:
-          new = Node()
-          new.setName(dir)
-            
-        if backend.isDirectory(os.path.join(next_path, dir)):
-          new.setDirectory()
-        else:
-          new.setFile()
-            
-        if new.isFile():
-          
-          # check file extensions
-          _, ext = os.path.splitext(new.getName())
+        open.put(tree)
 
-          if not ext.lower() in getSupportedFileExtensions():
-            if new.getParent() is not None:
-              next.removeChild(new)
-            continue            
-          else:
-            new.setIndexed()
+        while not open.empty():
 
-        if next.findChild(new) is None:
-          next.addChild(new)
+            if self._cancel:
+                self.signals.finished.emit(False)
+                return
 
-        if new.isDirectory():
-          open.put(new)
+            next: Node = open.get()
 
-      next.setIndexed()
+            next_path: str = next.getPath()
 
-    tree.clean()
+            # self.signals.statusChanged.emit(lib, 'Processing {path}'.format(path=next_path))
 
-    self.signals.result.emit((lib, tree, ))
-          
-    self.signals.finished.emit(True)
+            dir_list: List[str] = backend.listDirectory(next_path)
+            dir: str
+
+            for dir in dir_list:
+
+                if self._cancel:
+                    self.signals.finished.emit(False)
+                    return
+
+                new: Optional[Node] = tree.findChild(os.path.join(next_path, dir))
+
+                if new is None:
+                    new = Node()
+                    new.setName(dir)
+
+                if backend.isDirectory(os.path.join(next_path, dir)):
+                    new.setDirectory()
+                else:
+                    new.setFile()
+
+                if new.isFile():
+
+                    _: str
+                    ext: str
+
+                    # check file extensions
+                    _, ext = os.path.splitext(new.getName())
+
+                    if not ext.lower() in getSupportedFileExtensions():
+                        if new.getParent() is not None:
+                            next.removeChild(new)
+                        continue
+                    else:
+                        new.setIndexed()
+
+                if next.findChild(new) is None:
+                    next.addChild(new)
+
+                if new.isDirectory():
+                    open.put(new)
+
+            next.setIndexed()
+
+        tree.clean()
+
+        self.signals.result.emit(
+            (
+                lib,
+                tree,
+            )
+        )
+
+        self.signals.finished.emit(True)

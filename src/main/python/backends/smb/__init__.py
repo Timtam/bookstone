@@ -1,1 +1,1 @@
-from .backend import SMBBackend
+from .backend import SMBBackend  # noqa: F401

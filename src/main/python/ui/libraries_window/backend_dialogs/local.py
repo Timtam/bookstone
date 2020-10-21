@@ -1,72 +1,80 @@
-from PyQt5.QtWidgets import (
-  QFileDialog,
-  QLabel,
-  QLineEdit,
-  QPushButton,
-  QVBoxLayout,
-  QWidget)
+from typing import Any, Dict, List
 
+from PyQt5.QtWidgets import (
+    QFileDialog,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
+
+from backend import Backend
 from backends.local import LocalBackend
+
 from ..backend_dialog import BackendDialog
+
 
 class LocalBackendDialog(BackendDialog):
 
-  def __init__(self, *args, **kwargs):
-    BackendDialog.__init__(self)
+    browse_button: QPushButton
+    folder_input: QLineEdit
 
-  def build(self):
-  
-    folder_tab = QWidget(self.tabs)
-    
-    layout = QVBoxLayout(folder_tab)
-    folder_label = QLabel("Library directory:", self)
-    layout.addWidget(folder_label)
-    
-    self.folder_input = QLineEdit(folder_tab)
-    self.folder_input.setReadOnly(True)
-    folder_label.setBuddy(self.folder_input)
-    layout.addWidget(self.folder_input)
+    def __init__(self, *args: Any, **kwargs: Any):
 
-    self.browse_button = QPushButton('Browse...', folder_tab)
-    self.browse_button.pressed.connect(self.browseDirectory)
-    layout.addWidget(self.browse_button)
-    
-    folder_tab.setLayout(layout)
+        super().__init__()
 
-    return {
-      'Location': folder_tab
-    }
+    def build(self) -> Dict[str, QWidget]:
 
-  def getBackend(self):
+        folder_tab: QWidget = QWidget(self.tabs)
 
-    b = LocalBackend()
-    
-    b.setPath(self.folder_input.text())
+        layout: QVBoxLayout = QVBoxLayout(folder_tab)
+        folder_label: QLabel = QLabel("Library directory:", self)
+        layout.addWidget(folder_label)
 
-    return b
-  
-  @staticmethod
-  def getName():
-    return LocalBackend.getName()
-  
-  def browseDirectory(self):
-  
-    picker = QFileDialog(self)
+        self.folder_input = QLineEdit(folder_tab)
+        self.folder_input.setReadOnly(True)
+        folder_label.setBuddy(self.folder_input)
+        layout.addWidget(self.folder_input)
 
-    picker.setFileMode(QFileDialog.Directory)
-    
-    if self.folder_input.text():
-      picker.setDirectory(self.folder_input.text())
+        self.browse_button = QPushButton("Browse...", folder_tab)
+        self.browse_button.pressed.connect(self.browseDirectory)
+        layout.addWidget(self.browse_button)
 
-    picker.exec_()
+        folder_tab.setLayout(layout)
 
-    files = picker.selectedFiles()
-    
-    if len(files):
-      self.folder_input.setText(files[0])
+        return {"Location": folder_tab}
 
-    self.update()
-  
-  def isValid(self):
-  
-    return bool(self.folder_input.text())
+    def getBackend(self) -> Backend:
+
+        b: Backend = LocalBackend()
+
+        b.setPath(self.folder_input.text())
+
+        return b
+
+    @staticmethod
+    def getName() -> str:
+        return LocalBackend.getName()
+
+    def browseDirectory(self) -> None:
+
+        picker: QFileDialog = QFileDialog(self)
+
+        picker.setFileMode(QFileDialog.Directory)
+
+        if self.folder_input.text():
+            picker.setDirectory(self.folder_input.text())
+
+        picker.exec_()
+
+        files: List[str] = picker.selectedFiles()
+
+        if len(files):
+            self.folder_input.setText(files[0])
+
+        self.update()
+
+    def isValid(self) -> bool:
+
+        return bool(self.folder_input.text())

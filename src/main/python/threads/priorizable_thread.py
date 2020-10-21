@@ -1,67 +1,92 @@
+from typing import Any, cast
+
 from PyQt5.QtCore import QRunnable
 
 from .signal_handler import SignalHandler
 
+
 class PriorizableThread(QRunnable):
 
-  _cancel = False
-  _index = -1
-  _priority = -1
+    _cancel: bool = False
+    _index: int = -1
+    _priority: int = -1
+    signals: SignalHandler
 
-  def __init__(self):
-    QRunnable.__init__(self)
-    
-    self.signals = SignalHandler()
+    def __init__(self) -> None:
 
-  def cancel(self):
-    self._cancel = True
+        super().__init__()
 
-  def __lt__(self, other):
-    if self._priority == other._priority:
-      return self._index < other._index
-    return self._priority < other._priority
+        self.signals = SignalHandler()
 
-  def __gt__(self, other):
-    if self._priority == other._priority:
-      return self._index > other._index
-    return self._priority > other._priority
+    def cancel(self) -> None:
+        self._cancel = True
 
-  def __le__(self, other):
-    if self._priority == other._priority:
-      return self._index <= other._index
-    return self._priority <= other._priority
+    def __lt__(self, other: Any) -> bool:
+        if not isinstance(other, PriorizableThread):
+            return NotImplemented
 
-  def __ge__(self, other):
-    if self._priority == other._priority:
-      return self._index >= other._index
-    return self._priority >= other._priority
+        if self._priority == cast(PriorizableThread, other)._priority:
+            return self._index < cast(PriorizableThread, other)._index
+        return self._priority < cast(PriorizableThread, other)._priority
 
-  def __eq__(self, other):
-    return self._index == other._index
+    def __gt__(self, other: Any) -> bool:
 
-  def __ne__(self, other):
-    return self._index != other._index
+        if not isinstance(other, PriorizableThread):
+            return NotImplemented
 
-  @property
-  def priority(self):
-    return self._priority
+        if self._priority == cast(PriorizableThread, other)._priority:
+            return self._index > cast(PriorizableThread, other)._index
+        return self._priority > cast(PriorizableThread, other)._priority
 
-  @priority.setter
-  def priority(self, value):
+    def __le__(self, other: Any) -> bool:
 
-    if self._priority >= 0:
-      raise ValueError('priority can only be set once')
+        if not isinstance(other, PriorizableThread):
+            return NotImplemented
 
-    self._priority = value
+        if self._priority == cast(PriorizableThread, other)._priority:
+            return self._index <= cast(PriorizableThread, other)._index
+        return self._priority <= cast(PriorizableThread, other)._priority
 
-  @property
-  def index(self):
-    return self._index
+    def __ge__(self, other: Any) -> bool:
 
-  @index.setter
-  def index(self, value):
+        if not isinstance(other, PriorizableThread):
+            return NotImplemented
 
-    if self._index >= 0:
-      raise ValueError('index can only be set once')
+        if self._priority == cast(PriorizableThread, other)._priority:
+            return self._index >= cast(PriorizableThread, other)._index
+        return self._priority >= cast(PriorizableThread, other)._priority
 
-    self._index = value
+    def __eq__(self, other: Any) -> bool:
+
+        if not isinstance(other, PriorizableThread):
+            return NotImplemented
+        return self._index == cast(PriorizableThread, other)._index
+
+    def __ne__(self, other: Any) -> bool:
+        if not isinstance(other, PriorizableThread):
+            return NotImplemented
+        return self._index != cast(PriorizableThread, other)._index
+
+    @property
+    def priority(self) -> int:
+        return self._priority
+
+    @priority.setter
+    def priority(self, value: int) -> None:
+
+        if self._priority >= 0:
+            raise ValueError("priority can only be set once")
+
+        self._priority = value
+
+    @property
+    def index(self) -> int:
+        return self._index
+
+    @index.setter
+    def index(self, value: int) -> None:
+
+        if self._index >= 0:
+            raise ValueError("index can only be set once")
+
+        self._index = value

@@ -1,45 +1,49 @@
-from PyQt5.QtCore import Qt
-from PyQt5.QtWidgets import (
-  QAction,
-  QLabel, 
-  QMenu,
-  QMenuBar)
+from typing import Any
+
+from PyQt5.QtWidgets import QAction, QMenu, QMenuBar
 
 from ui import WindowController
-from storage import Storage
-from .. import Window
 from ui.libraries_window import LibrariesWindow
 from ui.settings_window import SettingsWindow
 
+from .. import Window
+
+
 class MainWindow(Window):
 
-  def __init__(self, *args, **kwargs):
-    Window.__init__(self, *args, **kwargs)
+    file_menu: QMenu
+    menu_bar: QMenuBar
 
-    self.setWindowTitle('Bookstone')
+    def __init__(self, *args: Any, **kwargs: Any):
 
-    self.menu_bar = QMenuBar(self)
-    self.file_menu = self.menu_bar.addMenu('&File')
-    
-    act = QAction('Manage &libraries', self.file_menu)
-    act.triggered.connect(self.showLibrariesWindow)
-    self.file_menu.addAction(act)
+        super().__init__(*args, **kwargs)
 
-    act = QAction('&Settings', self.file_menu)
-    act.triggered.connect(self.showSettingsWindow)
-    self.file_menu.addAction(act)
+        self.setWindowTitle("Bookstone")
 
-    act = QAction('&Exit', self.file_menu)
-    act.triggered.connect(self.exit)
-    self.file_menu.addAction(act)
+        self.menu_bar = QMenuBar(self)
+        self.file_menu = self.menu_bar.addMenu("&File")
 
-  def exit(self):
-    self.closed.emit()
+        act: QAction
 
-  def showLibrariesWindow(self):
-  
-    WindowController.getInstance().pushWindow(LibrariesWindow())
+        act = QAction("Manage &libraries", self.file_menu)
+        act.triggered.connect(self.showLibrariesWindow)
+        self.file_menu.addAction(act)
 
-  def showSettingsWindow(self):
-  
-    WindowController.getInstance().pushWindow(SettingsWindow())
+        act = QAction("&Settings", self.file_menu)
+        act.triggered.connect(self.showSettingsWindow)
+        self.file_menu.addAction(act)
+
+        act = QAction("&Exit", self.file_menu)
+        act.triggered.connect(self.exit)
+        self.file_menu.addAction(act)
+
+    def exit(self) -> None:
+        self.closed.emit()
+
+    def showLibrariesWindow(self) -> None:
+
+        WindowController().pushWindow(LibrariesWindow())
+
+    def showSettingsWindow(self) -> None:
+
+        WindowController().pushWindow(SettingsWindow())

@@ -1,42 +1,53 @@
-from PyQt5.QtCore import Qt
+from typing import Any, List, cast
+
 from PyQt5.QtGui import QStandardItem, QStandardItemModel
 
+from backend import Backend
+from library.library import Library
 from storage import Storage
+
 
 class LibrariesModel(QStandardItemModel):
 
-  def __init__(self, *args, **kwargs):
-    QStandardItemModel.__init__(self, *args, **kwargs)
+    _libraries: List[Library]
 
-    self._libraries = []
+    def __init__(self, *args: Any, **kwargs: Any):
 
-    self.reloadLibraries()
-  
-  def reloadLibraries(self):
+        super().__init__(*args, **kwargs)
 
-    self.clear()
+        self._libraries = []
 
-    self.setColumnCount(2)
-    self.setHorizontalHeaderLabels(['Name', 'Connection'])
+        self.reloadLibraries()
 
-    self._libraries = Storage.getInstance().getLibraryManager().getLibraries()
+    def reloadLibraries(self) -> None:
 
-    for lib in self._libraries:
-      row = []
+        lib: Library
 
-      item = QStandardItem(lib.getName())
-      item.setEditable(False)
-      row.append(item)
-      
-      item = QStandardItem(lib.getBackend().getName())
-      item.setEditable(False)
-      row.append(item)
+        self.clear()
 
-      self.appendRow(row)
+        self.setColumnCount(2)
+        self.setHorizontalHeaderLabels(["Name", "Connection"])
 
-  def updateLibrary(self, lib):
-  
-    index = self._libraries.index(lib)
-    
-    item = self.item(index, 0)
-    item.setText(lib.getName())
+        self._libraries = Storage().getLibraryManager().getLibraries()
+
+        for lib in self._libraries:
+
+            item: QStandardItem
+            row: List[QStandardItem] = []
+
+            item = QStandardItem(lib.getName())
+            item.setEditable(False)
+            row.append(item)
+
+            item = QStandardItem(cast(Backend, lib.getBackend()).getName())
+            item.setEditable(False)
+            row.append(item)
+
+            self.appendRow(row)
+
+    def updateLibrary(self, lib: Library) -> None:
+
+        index: int = self._libraries.index(lib)
+
+        item: QStandardItem = self.item(index, 0)
+        item.setText(lib.getName())

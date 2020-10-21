@@ -1,35 +1,37 @@
 import os
 import os.path
+from typing import Any, BinaryIO, List
 
 from backend import Backend
-from exceptions import BackendError
+
 from .file import LocalBackendFile
 
+
 class LocalBackend(Backend):
+    @staticmethod
+    def getName() -> str:
+        return "Local"
 
-  @staticmethod
-  def getName():
-    return 'Local'
+    @Backend.withPath
+    def listDirectory(self, dir: str) -> List[str]:
+        return os.listdir(dir)
 
-  @Backend.withPath
-  def listDirectory(self, dir):
-    return os.listdir(dir)
+    @Backend.withPath
+    def isDirectory(self, path: str) -> bool:
+        return os.path.isdir(path)
 
-  @Backend.withPath
-  def isDirectory(self, path):
-    return os.path.isdir(path)
-  
-  @Backend.withPath
-  def isFile(self, path):
-    return os.path.isfile(path)
+    @Backend.withPath
+    def isFile(self, path: str) -> bool:
+        return os.path.isfile(path)
 
-  @Backend.withPath
-  def openFile(self, path):
-  
-    obj = open(path, 'rb')
-    return LocalBackendFile(obj)
+    @Backend.withPath
+    def openFile(self, path: str) -> LocalBackendFile:
 
-  @Backend.withPath
-  def getStats(self, path):
-  
-    return os.stat(path)
+        obj: BinaryIO = open(path, "rb")
+
+        return LocalBackendFile(obj)
+
+    @Backend.withPath
+    def getStats(self, path: str) -> Any:
+
+        return os.stat(path)

@@ -1,70 +1,77 @@
-from abc import ABC, abstractmethod
 import os.path
+from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Any, Dict, List
+
+from backend_file import BackendFile
+
 
 class Backend(ABC):
 
-  def __init__(self):
-    self._path = Path('')
+    _path: Path
 
-  def withPath(f):
-    def helper(self, path, *args, **kwargs):
+    def __init__(self) -> None:
 
-      path = self._path / path
+        self._path = Path("")
 
-      return f(self, os.path.normpath(str(path)), *args, **kwargs)
-    return helper
+    def withPath(f: Any) -> Any:
+        def helper(self, path: Path, *args: Any, **kwargs: Any) -> Any:
 
-  def withPosixPath(f):
-    def helper(self, path, *args, **kwargs):
+            path = self._path / path
 
-      path = self._path / path
+            return f(self, os.path.normpath(str(path)), *args, **kwargs)
 
-      path = Path(os.path.normpath(str(path)))
+        return helper
 
-      return f(self, path.as_posix(), *args, **kwargs)
-    return helper
+    def withPosixPath(f: Any) -> Any:
+        def helper(self, path: Path, *args: Any, **kwargs: Any) -> Any:
 
-  def setPath(self, path):
+            path = self._path / path
 
-    self._path = Path(os.path.normpath(path))
+            path = Path(os.path.normpath(str(path)))
 
-  def getPath(self):
-    return self._path.as_posix()
+            return f(self, path.as_posix(), *args, **kwargs)
 
-  @staticmethod
-  @abstractmethod
-  def getName(self):
-    raise NotImplementedError()
+        return helper
 
-  @abstractmethod
-  def serialize(self):
-    return {
-      'name': self.getName(),
-      'path': self.getPath(),
-    }
-  
-  @abstractmethod
-  def deserialize(self, serialized):
+    def setPath(self, path: str) -> None:
 
-    self.setPath(serialized.get('path', ''))
+        self._path = Path(os.path.normpath(path))
 
-  @abstractmethod
-  def listDirectory(self, dir):
-    raise NotImplementedError()
+    def getPath(self) -> str:
+        return self._path.as_posix()
 
-  @abstractmethod
-  def isDirectory(self, path):
-    raise NotImplementedError()
-  
-  @abstractmethod
-  def isFile(self, path):
-    raise NotImplementedError()
+    @staticmethod
+    @abstractmethod
+    def getName() -> str:
+        pass
 
-  @abstractmethod
-  def openFile(self, path):
-    raise NotImplementedError()
-    
-  @abstractmethod
-  def getStats(self, path):
-    raise NotImplementedError()
+    def serialize(self) -> Dict[str, Any]:
+        return {
+            "name": self.getName(),
+            "path": self.getPath(),
+        }
+
+    def deserialize(self, serialized: Dict[str, Any]) -> None:
+
+        self.setPath(serialized.get("path", ""))
+
+    @abstractmethod
+    def listDirectory(self, dir: str) -> List[str]:
+        pass
+
+    @abstractmethod
+    def isDirectory(self, path: str) -> bool:
+        pass
+
+    @abstractmethod
+    def isFile(self, path: str) -> bool:
+        pass
+
+    @abstractmethod
+    def openFile(self, path: str) -> BackendFile:
+        pass
+
+    @abstractmethod
+    def getStats(self, path: str) -> Any:
+        pass

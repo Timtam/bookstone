@@ -1,1 +1,1 @@
-from .backend import LocalBackend
+from .backend import LocalBackend  # noqa: F401

@@ -1,83 +1,100 @@
 import heapq
 import itertools
 import os
-from PyQt5.QtCore import QThreadPool, QMutex
+from typing import Callable, Iterator, List, cast
 
+from PyQt5.QtCore import QMutex, QThreadPool
+
+from .priorizable_thread import PriorizableThread
 from .thread_pool_signal_handler import ThreadPoolSignalHandler
+
 
 class ThreadPool(QThreadPool):
 
-  def __init__(self):
-    QThreadPool.__init__(self)
+    _counter: Iterator[int]
+    _running: List[PriorizableThread]
+    _thread_mutex: QMutex
+    _waiting: List[PriorizableThread]
+    signals: ThreadPoolSignalHandler
 
-    self._counter = itertools.count()
-    self._waiting = []
-    self._running = []
-    self._thread_mutex = QMutex()
-    self.signals = ThreadPoolSignalHandler()
+    def __init__(self) -> None:
 
-  # add a new thread to the pool and run it if necessary
-  def enqueue(self, thread):
-    
-    self._thread_mutex.lock()
+        super().__init__()
 
-    thread.index = next(self._counter)
+        self._counter = itertools.count()
+        self._waiting = []
+        self._running = []
+        self._thread_mutex = QMutex()
+        self.signals = ThreadPoolSignalHandler()
 
-    heapq.heappush(self._waiting, thread)
+    # add a new thread to the pool and run it if necessary
+    def enqueue(self, thread: PriorizableThread) -> None:
 
-    self._thread_mutex.unlock()
+        self._thread_mutex.lock()
 
-    self._run_threads()
+        thread.index = next(self._counter)
 
-  # try to run as many waiting threads as possible until maxThreadCount is reached
-  def _run_threads(self):
-  
-    def gen_lambda(thread):
-      return lambda s: self._finished_handler(thread, s)
+        heapq.heappush(self._waiting, thread)
 
-    if self.maxThreadCount == self.currentThreadCount:
-      return
-  
-    self._thread_mutex.lock()
+        self._thread_mutex.unlock()
 
-    for i in range(self.maxThreadCount - self.currentThreadCount):
+        self._run_threads()
 
-      if len(self._waiting) == 0:
-        break
+    # try to run as many waiting threads as possible until maxThreadCount is reached
+    def _run_threads(self) -> None:
+        def gen_lambda(thread: PriorizableThread) -> Callable[[bool], None]:
+            return lambda s: self._finished_handler(thread, s)
 
-      new_thread = heapq.heappop(self._waiting)
+        if self.maxThreadCount == self.currentThreadCount:
+            return
 
-      new_thread.signals.finished.connect(gen_lambda(new_thread))
+        self._thread_mutex.lock()
 
-      self._running.append(new_thread)
-      print('now running new thread with index {index}'.format(index = new_thread.index))
-      self.start(new_thread)
+        i: int
 
-    self._thread_mutex.unlock()
+        for i in range(self.maxThreadCount - self.currentThreadCount):
 
-  # called whenever a thread finishes
-  # remove the thread and run others when necessary
-  def _finished_handler(self, thread, success):
+            if len(self._waiting) == 0:
+                break
 
-    self._thread_mutex.lock()
+            new_thread: PriorizableThread = heapq.heappop(self._waiting)
 
-    print('thread {index} finished running'.format(index = thread.index))
-    self._running.remove(thread)
-    
-    self._thread_mutex.unlock()
+            new_thread.signals.finished.connect(gen_lambda(new_thread))
 
-    self.signals.threadFinished.emit(thread, success)
+            self._running.append(new_thread)
 
-    self._run_threads()
+            print(
+                "now running new thread with index {index}".format(
+                    index=new_thread.index
+                )
+            )
+            self.start(new_thread)
 
-  @property
-  def maxThreadCount(self):
-    return os.cpu_count()
-  
-  @property
-  def currentThreadCount(self):
-    return len(self._running)
-    
-  @property
-  def waitingThreadCount(self):
-    return len(self._waiting)
+        self._thread_mutex.unlock()
+
+    # called whenever a thread finishes
+    # remove the thread and run others when necessary
+    def _finished_handler(self, thread: PriorizableThread, success: bool) -> None:
+
+        self._thread_mutex.lock()
+
+        print("thread {index} finished running".format(index=thread.index))
+        self._running.remove(thread)
+
+        self._thread_mutex.unlock()
+
+        self.signals.threadFinished.emit(thread, success)
+
+        self._run_threads()
+
+    @property
+    def maxThreadCount(self) -> int:
+        return cast(int, os.cpu_count())
+
+    @property
+    def currentThreadCount(self) -> int:
+        return len(self._running)
+
+    @property
+    def waitingThreadCount(self) -> int:
+        return len(self._waiting)

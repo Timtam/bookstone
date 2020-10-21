@@ -1,2 +1,2 @@
 class BackendError(Exception):
-  pass
+    pass

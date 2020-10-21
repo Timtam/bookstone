@@ -1,15 +1,17 @@
-from storage import Storage
+from Bass4Py.bass import OutputDevice, Stream
+
+from backend_file import BackendFile
+
 
 class AudioStream:
 
-  def __init__(self, obj, device):
-  
-    self._obj = obj
-    self._stream = device.CreateStreamFromFileObj(obj)
-  
-  @property
-  def tags(self):
-    return self._stream.Tags.Read()
+    _obj: BackendFile
+    _stream: Stream
 
-  def close(self):
-    self._stream.Free()
+    def __init__(self, obj: BackendFile, device: OutputDevice) -> None:
+
+        self._obj = obj
+        self._stream = device.CreateStreamFromFileObj(obj)
+
+    def close(self) -> None:
+        self._stream.Free()

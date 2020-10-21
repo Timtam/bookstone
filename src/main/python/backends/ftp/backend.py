@@ -1,116 +1,139 @@
+from typing import Any, Dict, Optional
+
 import ftputil
 import ftputil.error
 
 from backend import Backend
 from exceptions import BackendError
+
 from .factory import EncryptedFTPSessionFactory, UnencryptedFTPSessionFactory
 from .file import FTPBackendFile
 
+
 class FTPBackend(Backend):
 
-  def __init__(self):
-    Backend.__init__(self)
-    self._host = ''
-    self._username = ''
-    self._password = ''
-    self._port = 21
-    self._ftps = False
-    self._host_obj = None
+    _ftps: bool
+    _host: str
+    _host_obj: Optional[ftputil.FTPHost]
+    _password: str
+    _port: int
+    _username: str
 
-  @staticmethod
-  def getName():
-    return 'FTP'
+    def __init__(self) -> None:
+        super().__init__()
 
-  def withHost(f):
-  
-    def supply(self, *args, **kwargs):
+        self._host = ""
+        self._username = ""
+        self._password = ""
+        self._port = 21
+        self._ftps = False
+        self._host_obj = None
 
-      if self._host_obj is None:
+    @staticmethod
+    def getName() -> str:
+        return "FTP"
+
+    def withHost(f: Any) -> Any:
+        def supply(self, *args: Any, **kwargs: Any) -> Any:
+
+            exc: ftputil.error.FTPOSError
+
+            if self._host_obj is None:
+                try:
+                    self._host_obj = ftputil.FTPHost(
+                        self._host,
+                        self._username,
+                        self._password,
+                        port=self._port,
+                        session_factory=self._get_session_factory(),
+                    )
+                except ftputil.error.FTPOSError as exc:
+                    raise BackendError(str(exc))
+            return f(self, *args, host=self._host_obj, **kwargs)
+
+        return supply
+
+    def serialize(self) -> Dict[str, Any]:
+
+        ser: Dict[str, Any] = super().serialize()
+
+        ser["host"] = self._host
+        ser["username"] = self._username
+        ser["password"] = self._password
+        ser["port"] = self._port
+        ser["ftps"] = self._ftps
+
+        return ser
+
+    def deserialize(self, serialized: Dict[str, Any]) -> None:
+
+        super().deserialize(serialized)
+
+        self._host = serialized.get("host", "")
+        self._username = serialized.get("username", "")
+        self._password = serialized.get("password", "")
+        self._port = serialized.get("port", 21)
+        self._ftps = serialized.get("ftps", False)
+
+    def setUsername(self, username: str) -> None:
+        self._username = username
+
+    def setPassword(self, password: str) -> None:
+        self._password = password
+
+    def setPort(self, port: int) -> None:
+
+        if not isinstance(port, int):
+            raise IOError("port must be an integer")
+
+        self._port = port
+
+    def setHost(self, host: str) -> None:
+        self._host = host
+
+    def setFTPS(self, ftps: bool) -> None:
+
+        if not isinstance(ftps, bool):
+            raise IOError("parameter must be boolean")
+
+        self._ftps = ftps
+
+    @withHost
+    @Backend.withPosixPath
+    def listDirectory(self, dir: str, host: ftputil.FTPHost):
+
+        exc: ftputil.error.PermanentError
+
         try:
-          self._host_obj = ftputil.FTPHost(self._host, self._username, self._password, port = self._port, session_factory = self._get_session_factory())
-        except ftputil.error.FTPOSError as exc:
-          raise BackendError(str(exc))
-      return f(self, *args, host = self._host_obj, **kwargs)
-    return supply
+            return host.listdir(dir)
+        except ftputil.error.PermanentError as exc:
+            raise BackendError(str(exc))
 
-  def serialize(self):
-    ser = Backend.serialize(self)
-    
-    ser['host'] = self._host
-    ser['username'] = self._username
-    ser['password'] = self._password
-    ser['port'] = self._port
-    ser['ftps'] = self._ftps
-    
-    return ser
-  
-  def deserialize(self, serialized):
+    @withHost
+    @Backend.withPosixPath
+    def isDirectory(self, path: str, host: ftputil.FTPHost) -> bool:
 
-    Backend.deserialize(self, serialized)
+        return host.path.isdir(path)
 
-    self._host = serialized.get('host', '')
-    self._username = serialized.get('username', '')
-    self._password = serialized.get('password', '')
-    self._port = serialized.get('port', 21)
-    self._ftps = serialized.get('ftps', False)
+    @withHost
+    @Backend.withPosixPath
+    def isFile(self, path: str, host: ftputil.FTPHost) -> bool:
 
-  def setUsername(self, username):
-    self._username = username
-  
-  def setPassword(self, password):
-    self._password = password
+        return host.path.isfile(path)
 
-  def setPort(self, port):
-    
-    if not isinstance(port, int):
-      raise IOError('port must be an integer')
+    @withHost
+    @Backend.withPosixPath
+    def openFile(self, path: str, host: ftputil.FTPHost) -> FTPBackendFile:
 
-    self._port = port
+        return FTPBackendFile(host, path)
 
-  def setHost(self, host):
-    self._host = host
+    @withHost
+    @Backend.withPosixPath
+    def getStats(self, path: str, host: ftputil.FTPHost) -> Any:
 
-  def setFTPS(self, ftps):
+        return host.stat(path)
 
-    if not isinstance(ftps, bool):
-      raise IOError('parameter must be boolean')
-
-    self._ftps = ftps
-
-  @withHost
-  @Backend.withPosixPath
-  def listDirectory(self, dir, host):
-
-    try:
-      return host.listdir(dir)
-    except ftputil.error.PermanentError as exc:
-      raise BackendError(str(exc))
-
-  @withHost
-  @Backend.withPosixPath
-  def isDirectory(self, path, host):
-
-    return host.path.isdir(path)
-  
-  @withHost
-  @Backend.withPosixPath
-  def isFile(self, path, host):
-
-    return host.path.isfile(path)
-
-  @withHost
-  @Backend.withPosixPath
-  def openFile(self, path, host):
-  
-    return FTPBackendFile(host, path)
-
-  @withHost
-  @Backend.withPosixPath
-  def getStats(self, path, host):
-  
-    return host.stat(path)
-  
-  def _get_session_factory(self):
-    if self._ftps:
-      return EncryptedFTPSessionFactory
-    return UnencryptedFTPSessionFactory
+    def _get_session_factory(self) -> Any:
+        if self._ftps:
+            return EncryptedFTPSessionFactory
+        return UnencryptedFTPSessionFactory

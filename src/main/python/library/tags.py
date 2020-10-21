@@ -1,9 +1,11 @@
-from .tag import createTag
+from typing import Tuple
 
-Tags = (
-  createTag('author', 'Unknown Author'),
-  createTag('title', 'Unknown Title'),
-  createTag('series'),
-  createTag('collection'),
-  createTag('number'),
+from .tag import Tag
+
+Tags: Tuple[Tag, ...] = (
+    Tag("author", "Unknown Author"),
+    Tag("title", "Unknown Title"),
+    Tag("series"),
+    Tag("collection"),
+    Tag("number"),
 )

@@ -1,101 +1,107 @@
-from PyQt5.QtWidgets import (
-  QLabel, 
-  QLineEdit,
-  QHBoxLayout,
-  QWidget)
+from typing import Any, Dict
 
+from PyQt5.QtWidgets import QHBoxLayout, QLabel, QLineEdit, QWidget
+
+from backend import Backend
 from backends.smb import SMBBackend
+
 from ..backend_dialog import BackendDialog
+
 
 class SMBBackendDialog(BackendDialog):
 
-  def __init__(self, *args, **kwargs):
-    BackendDialog.__init__(self)
+    password_input: QLineEdit
+    path_input: QLineEdit
+    username_input: QLineEdit
 
-  def build(self):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
 
-    connection_tab = QWidget(self)
+        super().__init__()
 
-    layout = QHBoxLayout(connection_tab)
+    def build(self) -> Dict[str, QWidget]:
 
-    path_label = QLabel('Path:', connection_tab)
-    layout.addWidget(path_label)
+        connection_tab: QWidget = QWidget(self)
 
-    self.path_input = QLineEdit(connection_tab)
-    self.path_input.textChanged.connect(self.update)
-    path_label.setBuddy(self.path_input)
-    layout.addWidget(self.path_input)
+        layout: QHBoxLayout = QHBoxLayout(connection_tab)
 
-    username_label = QLabel('Username:', connection_tab)
-    layout.addWidget(username_label)
+        path_label: QLabel = QLabel("Path:", connection_tab)
+        layout.addWidget(path_label)
 
-    self.username_input = QLineEdit(connection_tab)
-    self.username_input.textChanged.connect(self.update)
-    username_label.setBuddy(self.username_input)
-    layout.addWidget(self.username_input)
+        self.path_input = QLineEdit(connection_tab)
+        self.path_input.textChanged.connect(self.update)
+        path_label.setBuddy(self.path_input)
+        layout.addWidget(self.path_input)
 
-    password_label = QLabel('Password:', connection_tab)
-    layout.addWidget(password_label)
+        username_label: QLabel = QLabel("Username:", connection_tab)
+        layout.addWidget(username_label)
 
-    self.password_input = QLineEdit(connection_tab)
-    self.password_input.setEchoMode(QLineEdit.Password)
-    self.password_input.textChanged.connect(self.update)
-    password_label.setBuddy(self.password_input)
-    layout.addWidget(self.password_input)
+        self.username_input = QLineEdit(connection_tab)
+        self.username_input.textChanged.connect(self.update)
+        username_label.setBuddy(self.username_input)
+        layout.addWidget(self.username_input)
 
-    connection_tab.setLayout(layout)
+        password_label = QLabel("Password:", connection_tab)
+        layout.addWidget(password_label)
 
-    return {
-      'Connection': connection_tab
-    }
+        self.password_input = QLineEdit(connection_tab)
+        self.password_input.setEchoMode(QLineEdit.Password)
+        self.password_input.textChanged.connect(self.update)
+        password_label.setBuddy(self.password_input)
+        layout.addWidget(self.password_input)
 
-  def getBackend(self):
+        connection_tab.setLayout(layout)
 
-    b = SMBBackend()
-    
-    b.setPath(self.path_input.text())
-    b.setUsername(self.username_input.text())
-    b.setPassword(self.password_input.text())
+        return {"Connection": connection_tab}
 
-    return b
-  
-  def isValid(self):
-  
-    valid = BackendDialog.isValid(self)
+    def getBackend(self) -> Backend:
 
-    username_present = False
-    password_present = False
-    unc_path_present = False
-    
-    if len(self.username_input.text()) > 0:
-      username_present = True
-    
-    if len(self.password_input.text()) > 0:
-      password_present = True
+        b: SMBBackend = SMBBackend()
 
-    # checking for valid unc path
-    
-    path = self.path_input.text()
-    
-    # needs to start with either two // or two \\
-    if path.startswith(r'\\') or path.startswith('//'):
-      try:
-        tail = path[path[2:].index(path[0])+3:]
+        b.setPath(self.path_input.text())
+        b.setUsername(self.username_input.text())
+        b.setPassword(self.password_input.text())
 
-        if len(tail) > 0:
-          unc_path_present = True
+        return b
 
-      except ValueError:
-        pass
+    def isValid(self) -> bool:
 
-    enable = valid and username_present and password_present and unc_path_present
+        valid: bool = super().isValid()
 
-    return enable
+        username_present: bool = False
+        password_present: bool = False
+        unc_path_present: bool = False
 
-  @staticmethod
-  def getName():
-    return SMBBackend.getName()
-  
-  def accept(self):
-    if self.testConnection():
-      return BackendDialog.accept(self)
+        if len(self.username_input.text()) > 0:
+            username_present = True
+
+        if len(self.password_input.text()) > 0:
+            password_present = True
+
+        # checking for valid unc path
+
+        path: str = self.path_input.text()
+
+        # needs to start with either two // or two \\
+        if path.startswith(r"\\") or path.startswith("//"):
+            try:
+                tail: str = path[path[2:].index(path[0]) + 3 :]
+
+                if len(tail) > 0:
+                    unc_path_present = True
+
+            except ValueError:
+                pass
+
+        enable: bool = (
+            valid and username_present and password_present and unc_path_present
+        )
+
+        return enable
+
+    @staticmethod
+    def getName() -> str:
+        return SMBBackend.getName()
+
+    def accept(self) -> None:
+        if self.testConnection():
+            return super().accept()

@@ -1,72 +1,87 @@
+from typing import Any, Dict
+
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
-  QDialog,
-  QDialogButtonBox,
-  QHBoxLayout,
-  QMessageBox,
-  QTabWidget
+    QDialog,
+    QDialogButtonBox,
+    QHBoxLayout,
+    QMessageBox,
+    QTabWidget,
+    QWidget,
 )
 
+from backend import Backend
 from exceptions import BackendError
+
 
 class BackendDialog(QDialog):
 
-  def __init__(self, *args, **kwargs):
-    QDialog.__init__(self, *args, **kwargs)
+    button_box: QDialogButtonBox
+    layout: QHBoxLayout
+    tabs: QTabWidget
 
-  def build(self):
-    pass
+    def __init__(self, *args: Any, **kwargs: Any):
 
-  def setup(self):
+        super().__init__(*args, **kwargs)
 
-    self.layout = QHBoxLayout(self)
+    def build(self) -> Dict[str, QWidget]:
+        return {}
 
-    self.tabs = QTabWidget(self)
+    def setup(self) -> None:
 
-    tabs = self.build()
+        self.layout = QHBoxLayout(self)
 
-    for name, tab in tabs.items():
-      self.tabs.addTab(tab, name)
+        self.tabs = QTabWidget(self)
 
-    self.button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self)
-    self.button_box.accepted.connect(self.accept)
-    self.button_box.rejected.connect(self.reject)
-    self.layout.addWidget(self.button_box)
+        tabs: Dict[str, QWidget] = self.build()
+        name: str
+        tab: QWidget
 
-    self.setLayout(self.layout)
+        for name, tab in tabs.items():
+            self.tabs.addTab(tab, name)
 
-    self.update()
+        self.button_box = QDialogButtonBox(
+            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self
+        )
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        self.layout.addWidget(self.button_box)
 
-  @staticmethod
-  def getName():
-    raise NotImplementedError()
+        self.setLayout(self.layout)
 
-  def getBackend(self):
-    raise NotImplementedError()
+        self.update()
 
-  def testConnection(self):
-    
-    backend = self.getBackend()
-    
-    try:
-      content = backend.listDirectory('.')
-    except BackendError as exc:
-      box = QMessageBox()
-      box.setText("Error connecting using the provided information.")
-      box.setStandardButtons( QMessageBox.Ok )
-      box.setDetailedText( Qt.convertFromPlainText(str(exc)) )
-      box.setTextFormat( Qt.RichText )
-      box.setIcon( QMessageBox.Warning )
-      box.exec_()
-      return False
+    @staticmethod
+    def getName() -> str:
+        pass
 
-    return True
+    def getBackend(self) -> Backend:
+        pass
 
-  def isValid(self):
-    return True
+    def testConnection(self) -> bool:
 
-  def update(self):
-  
-    valid = self.isValid()
+        backend: Backend = self.getBackend()
+        exc: BackendError
 
-    self.button_box.button(QDialogButtonBox.Ok).setEnabled(valid)
+        try:
+            backend.listDirectory(".")
+        except BackendError as exc:
+            box: QMessageBox = QMessageBox()
+            box.setText("Error connecting using the provided information.")
+            box.setStandardButtons(QMessageBox.Ok)
+            box.setDetailedText(Qt.convertFromPlainText(str(exc)))
+            box.setTextFormat(Qt.RichText)
+            box.setIcon(QMessageBox.Warning)
+            box.exec_()
+            return False
+
+        return True
+
+    def isValid(self) -> bool:
+        return True
+
+    def update(self) -> None:
+
+        valid: bool = self.isValid()
+
+        self.button_box.button(QDialogButtonBox.Ok).setEnabled(valid)

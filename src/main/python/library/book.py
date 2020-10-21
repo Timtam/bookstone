@@ -1,31 +1,39 @@
+from typing import Any, Dict
+
 from .tag_collection import TagCollection
+
 
 class Book:
 
-  def __init__(self, path = ''):
-  
-    self._path = path
-    self._tags = TagCollection()
-    
-  def serialize(self):
-    return {
-      'tags': self._tags.serialize(),
-      'path': self._path,
-    }
+    _path: str
+    _tags: TagCollection
 
-  def deserialize(self, serialized):
-  
-    self._path = serialized.get('path', '')
-    tags = serialized.get('tags', {})
-    
-    self._tags.deserialize(tags)
+    def __init__(self, path: str = "") -> None:
 
-  def getPath(self):
-    return self._path
-  
-  def setPath(self, path):
-    self._path = path
+        self._path = path
+        self._tags = TagCollection()
 
-  @property
-  def tags(self):
-    return self._tags
+    def serialize(self) -> Dict[str, Any]:
+
+        return {
+            "tags": self._tags.serialize(),
+            "path": self._path,
+        }
+
+    def deserialize(self, serialized: Dict[str, Any]) -> None:
+
+        self._path = serialized.get("path", "")
+
+        tags: Dict[str, str] = serialized.get("tags", {})
+
+        self._tags.deserialize(tags)
+
+    def getPath(self) -> str:
+        return self._path
+
+    def setPath(self, path: str) -> None:
+        self._path = path
+
+    @property
+    def tags(self) -> TagCollection:
+        return self._tags

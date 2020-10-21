@@ -1,50 +1,40 @@
+from py_singleton import singleton
+
 from threads import ThreadPool
 
+
+@singleton
 class Storage:
-  __instance = None
 
-  @staticmethod 
-  def getInstance():
-    """ Static access method. """
-    if Storage.__instance == None:
-      Storage()
-    return Storage.__instance
-  def __init__(self):
-    """ Virtually private constructor. """
-    if Storage.__instance != None:
-      raise Exception("This class is a singleton!")
+    _application_context = None
+    _audio_manager = None
+    _configuration_manager = None
+    _library_manager = None
+    _thread_pool: ThreadPool = ThreadPool()
 
-    Storage.__instance = self
+    def getApplicationContext(self):
+        return self._application_context
 
-    self._application_context = None
-    self._audio_manager = None
-    self._configuration_manager = None
-    self._library_manager = None
-    self._thread_pool = ThreadPool()
+    def setApplicationContext(self, context):
+        self._application_context = context
 
-  def getApplicationContext(self):
-    return self._application_context
-  
-  def setApplicationContext(self, context):
-    self._application_context = context
-    
-  def getLibraryManager(self):
-    return self._library_manager
+    def getLibraryManager(self):
+        return self._library_manager
 
-  def setLibraryManager(self, manager):
-    self._library_manager = manager
+    def setLibraryManager(self, manager):
+        self._library_manager = manager
 
-  def getThreadPool(self):
-    return self._thread_pool
+    def getThreadPool(self):
+        return self._thread_pool
 
-  def setAudioManager(self, manager):
-    self._audio_manager = manager
-  
-  def getAudioManager(self):
-    return self._audio_manager
-    
-  def setConfigurationManager(self, manager):
-    self._configuration_manager = manager
-  
-  def getConfigurationManager(self):
-    return self._configuration_manager
+    def setAudioManager(self, manager):
+        self._audio_manager = manager
+
+    def getAudioManager(self):
+        return self._audio_manager
+
+    def setConfigurationManager(self, manager):
+        self._configuration_manager = manager
+
+    def getConfigurationManager(self):
+        return self._configuration_manager
