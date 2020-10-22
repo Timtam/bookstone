@@ -4,7 +4,6 @@ from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import QCheckBox, QVBoxLayout, QWidget
 
 from configuration_manager import ConfigurationManager
-from storage import Storage
 
 
 class GeneralTab(QWidget):
@@ -27,13 +26,13 @@ class GeneralTab(QWidget):
         )
         self.layout.addWidget(self.ask_on_exit_when_indexing)
 
-        config: ConfigurationManager = Storage().getConfigurationManager()
+        config: ConfigurationManager = ConfigurationManager()
 
         self.ask_on_exit_when_indexing.setChecked(config.askBeforeExitWhenIndexing)
 
     def askOnExitWhenIndexingChanged(self, state: int):
 
         if state == Qt.Checked:
-            Storage().getConfigurationManager().askBeforeExitWhenIndexing = True
+            ConfigurationManager().askBeforeExitWhenIndexing = True
         else:
-            Storage().getConfigurationManager().askBeforeExitWhenIndexing = False
+            ConfigurationManager().askBeforeExitWhenIndexing = False

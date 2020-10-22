@@ -20,7 +20,6 @@ if __name__ == "__main__":
 
     conf_manager: ConfigurationManager = ConfigurationManager()
     conf_manager.load(getConfigFile())
-    store.setConfigurationManager(conf_manager)
 
     lib_manager: LibraryManager = LibraryManager()
     store.setLibraryManager(lib_manager)
@@ -33,5 +32,5 @@ if __name__ == "__main__":
     controller.pushWindow(MainWindow())
 
     exit_code: int = appctxt.app.exec_()  # 2. Invoke appctxt.app.exec_()
-    store.getConfigurationManager().save(getConfigFile())
+    conf_manager.save(getConfigFile())
     sys.exit(exit_code)

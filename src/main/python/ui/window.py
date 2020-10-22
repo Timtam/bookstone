@@ -2,6 +2,7 @@ from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QCloseEvent
 from PyQt5.QtWidgets import QMessageBox, QWidget
 
+from configuration_manager import ConfigurationManager
 from library.manager import LibraryManager
 from storage import Storage
 
@@ -16,7 +17,7 @@ class Window(QWidget):
 
         if (
             not manager.isIndexing()
-            or not Storage().getConfigurationManager().askBeforeExitWhenIndexing
+            or not ConfigurationManager().askBeforeExitWhenIndexing
         ):
             event.accept()
             return

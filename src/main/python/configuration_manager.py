@@ -3,7 +3,10 @@ import os.path
 from json.decoder import JSONDecodeError
 from typing import Any, Dict, TextIO
 
+from py_singleton import singleton
 
+
+@singleton
 class ConfigurationManager:
     def __init__(self) -> None:
 
@@ -44,14 +47,19 @@ class ConfigurationManager:
 
         __dict__: Dict[str, Any] = super().__getattribute__("__dict__")
 
-        if name not in __dict__["_configs"]:
-            raise AttributeError(
-                "ConfigurationManager object has no attribute '{name}'".format(
-                    name=name
+        try:
+            if name not in __dict__["_configs"]:
+                raise AttributeError(
+                    "ConfigurationManager object has no attribute '{name}'".format(
+                        name=name
+                    )
                 )
-            )
 
-        __dict__["_configs"][name] = value
+            __dict__["_configs"][name] = value
+
+        except KeyError:
+            # accessed before initialization -> py_singleton
+            __dict__[name] = value
 
     def load(self, file: str) -> None:
 
