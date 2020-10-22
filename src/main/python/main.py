@@ -23,8 +23,8 @@ if __name__ == "__main__":
 
     lib_manager: LibraryManager = LibraryManager()
     store.setLibraryManager(lib_manager)
+
     am: AudioManager = AudioManager()
-    store.setAudioManager(am)
     lib_manager.load(getLibrariesDirectory())
     am.initialize()
 

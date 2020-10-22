@@ -7,7 +7,6 @@ from threads import ThreadPool
 class Storage:
 
     _application_context = None
-    _audio_manager = None
     _library_manager = None
     _thread_pool: ThreadPool = ThreadPool()
 
@@ -25,9 +24,3 @@ class Storage:
 
     def getThreadPool(self):
         return self._thread_pool
-
-    def setAudioManager(self, manager):
-        self._audio_manager = manager
-
-    def getAudioManager(self):
-        return self._audio_manager

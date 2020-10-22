@@ -1,25 +1,21 @@
-import sys
+import os
+import os.path
 from typing import Optional, cast
 
-if sys.version_info < (3, 7):
-    from Bass4Py.bass import BASS, OutputDevice
-else:
-
-    import os
-
-    os.add_dll_directory(os.getcwd())
-
-    from Bass4Py.bass import BASS, OutputDevice
-
-import os.path
+from py_singleton import singleton
 
 from backend import Backend
 from backend_file import BackendFile
 from library.node import Node
 
-from .stream import AudioStream
+os.add_dll_directory(os.getcwd())
+
+from Bass4Py.bass import BASS, OutputDevice  # noqa: E402
+
+from .stream import AudioStream  # noqa: E402
 
 
+@singleton
 class AudioManager:
 
     _bass: BASS
