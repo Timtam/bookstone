@@ -1,9 +1,12 @@
+import copy
 import json
 import os.path
 from json.decoder import JSONDecodeError
-from typing import Any, Dict, TextIO
+from typing import Any, Dict, List, TextIO
 
 from py_singleton import singleton
+
+from library.naming_scheme import NamingScheme
 
 
 @singleton
@@ -26,6 +29,17 @@ class ConfigurationManager:
     def init(self) -> None:
 
         self._add("askBeforeExitWhenIndexing", True)
+        self._add(
+            "namingSchemes",
+            [
+                NamingScheme(
+                    name="Default 1",
+                    standalone="{author} - {title}",
+                    volume="{author} - {series}/{number} - {title}",
+                    default=True,
+                )
+            ],
+        )
 
     def __getattribute__(self, name: str) -> Any:
 
@@ -87,14 +101,36 @@ class ConfigurationManager:
                 if name not in __dict__["_configs"]:
                     continue
 
-                __dict__["_configs"][name] = value
+                if name == "namingSchemes":
+
+                    scheme: Dict[str, str]
+
+                    for scheme in value:
+
+                        __dict__["_configs"][name].append(NamingScheme(**scheme))  # type: ignore
+
+                else:
+                    __dict__["_configs"][name] = value
 
     def save(self, file: str) -> None:
 
-        __dict__: Dict[str, Any] = super().__getattribute__("__dict__")
+        config: Dict[str, Any] = copy.copy(
+            super().__getattribute__("__dict__").get("_configs", {})
+        )
         f: TextIO
 
-        data: str = json.dumps(__dict__["_configs"], indent=2)
+        # preparing configuration by handling any special cases beforehand
+
+        schemes: List[Dict[str, str]] = []
+        scheme: NamingScheme
+
+        for scheme in config.get("namingSchemes", []):
+            if not scheme.default:
+                schemes.append(scheme.serialize())
+
+        config["namingSchemes"] = schemes
+
+        data: str = json.dumps(config, indent=2)
 
         with open(file, "w") as f:
             f.write(data)
