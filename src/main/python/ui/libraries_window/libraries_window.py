@@ -1,6 +1,7 @@
-from typing import Any, Callable, List, Type
+from typing import Any, Callable, List, Type, cast
 
-from PyQt5.QtCore import QEvent
+from PyQt5.QtCore import QEvent, QObject
+from PyQt5.QtGui import QContextMenuEvent
 from PyQt5.QtWidgets import (
     QAction,
     QInputDialog,
@@ -13,7 +14,7 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-from library import Library
+from library.library import Library
 from library.manager import LibraryManager
 from storage import Storage
 from utils import getLibrariesDirectory
@@ -32,7 +33,6 @@ class LibrariesWindow(Window):
     add_menu: QMenu
     close_button: QPushButton
     indexing_button: QPushButton
-    layout: QVBoxLayout
     libraries_label: QLabel
     libraries_list: QTableView
     libraries_model: LibrariesModel
@@ -43,10 +43,10 @@ class LibrariesWindow(Window):
 
         self.setWindowTitle("Bookstone - Libraries")
 
-        self.layout = QVBoxLayout(self)
+        layout = QVBoxLayout(self)
 
         self.libraries_label = QLabel("Known libraries", self)
-        self.layout.addWidget(self.libraries_label)
+        layout.addWidget(self.libraries_label)
 
         self.libraries_list = QTableView(self)
         self.libraries_list.setTabKeyNavigation(False)
@@ -55,10 +55,10 @@ class LibrariesWindow(Window):
         self.libraries_list.setSelectionMode(QTableView.SingleSelection)
         self.libraries_list.installEventFilter(self)
         self.libraries_label.setBuddy(self.libraries_list)
-        self.layout.addWidget(self.libraries_list)
+        layout.addWidget(self.libraries_list)
 
         self.add_button = QPushButton("Add", self)
-        self.layout.addWidget(self.add_button)
+        layout.addWidget(self.add_button)
 
         self.add_menu = QMenu(self.add_button)
 
@@ -76,13 +76,13 @@ class LibrariesWindow(Window):
         self.add_button.setMenu(self.add_menu)
 
         self.indexing_button = QPushButton(self)
-        self.layout.addWidget(self.indexing_button)
+        layout.addWidget(self.indexing_button)
 
         self.close_button = QPushButton("Close", self)
-        self.close_button.pressed.connect(self.close)
-        self.layout.addWidget(self.close_button)
+        self.close_button.pressed.connect(self.close)  # type: ignore
+        layout.addWidget(self.close_button)
 
-        self.setLayout(self.layout)
+        self.setLayout(layout)
 
         manager: LibraryManager = Storage().getLibraryManager()
         manager.indexingStarted.connect(self.indexingHandler)
@@ -96,7 +96,7 @@ class LibrariesWindow(Window):
 
         dlg: DetailsDialog = DetailsDialog(tab, library, self)
         dlg.setup()
-        success: bool = dlg.exec_()
+        success: int = dlg.exec_()
 
         if not success:
             return
@@ -140,13 +140,13 @@ class LibrariesWindow(Window):
             Storage().getLibraryManager().save(getLibrariesDirectory())
             self.libraries_model.updateLibrary(lib)
 
-    def eventFilter(self, source: QWidget, event: QEvent) -> bool:
+    def eventFilter(self, source: QObject, event: QEvent) -> bool:
 
         act: QAction
 
         if event.type() == QEvent.ContextMenu and source is self.libraries_list:
 
-            index: int = source.indexAt(event.pos()).row()
+            index: int = source.indexAt(cast(QContextMenuEvent, event).pos()).row()
 
             if index >= 0:
                 lib: Library = Storage().getLibraryManager().getLibraries()[index]
@@ -162,13 +162,15 @@ class LibrariesWindow(Window):
                 return True
         return QWidget.eventFilter(self, source, event)
 
-    def close(self) -> None:
+    def close(self) -> bool:
 
         manager: LibraryManager = Storage().getLibraryManager()
         manager.indexingStarted.disconnect(self.indexingHandler)
         manager.indexingFinished.disconnect(self.indexingHandler)
 
         self.closed.emit()
+
+        return super().close()
 
     def indexingHandler(self, success: Any = None) -> None:
         self.initializeIndexingButton()

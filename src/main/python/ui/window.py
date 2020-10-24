@@ -1,3 +1,5 @@
+from typing import cast
+
 from PyQt5.QtCore import pyqtSignal
 from PyQt5.QtGui import QCloseEvent
 from PyQt5.QtWidgets import QMessageBox, QWidget
@@ -25,7 +27,9 @@ class Window(QWidget):
         box: QMessageBox = QMessageBox()
         box.setText("Indexing operation in progress")
         box.setInformativeText("Do you really want to exit and abort the operation?")
-        box.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+        box.setStandardButtons(
+            cast(QMessageBox.StandardButton, QMessageBox.Yes | QMessageBox.No)
+        )
         box.setDefaultButton(QMessageBox.No)
         box.setIcon(QMessageBox.Question)
 

@@ -2,12 +2,12 @@ import sys
 
 from fbs_runtime.application_context.PyQt5 import ApplicationContext
 
-from audio import AudioManager
+from audio.manager import AudioManager
 from configuration_manager import ConfigurationManager
-from library import LibraryManager
+from library.manager import LibraryManager
 from storage import Storage
 from ui import WindowController
-from ui.main_window import MainWindow
+from ui.main_window.main_window import MainWindow
 from utils import getConfigFile, getLibrariesDirectory
 
 if __name__ == "__main__":

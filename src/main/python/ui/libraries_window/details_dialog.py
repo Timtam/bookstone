@@ -1,6 +1,6 @@
-from typing import Any, Type
+from typing import Any, Type, cast
 
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (
     QDialog,
     QDialogButtonBox,
@@ -21,9 +21,9 @@ class DetailsDialog(QDialog):
     backend_tab: BackendTab
     backend_tab_t: Type[BackendTab]
     button_box: QDialogButtonBox
-    layout: QHBoxLayout
     library: Library
     tabs: QTabWidget
+    updated: pyqtSignal
 
     def __init__(
         self, backend_tab: Type[BackendTab], library: Library, *args: Any, **kwargs: Any
@@ -33,10 +33,13 @@ class DetailsDialog(QDialog):
 
         self.backend_tab_t = backend_tab
         self.library = library
+        self.updated = pyqtSignal()
+
+        self.updated.connect(self.handleUpdated)
 
     def setup(self) -> None:
 
-        self.layout = QHBoxLayout(self)
+        layout = QHBoxLayout(self)
 
         self.tabs = QTabWidget(self)
 
@@ -45,13 +48,17 @@ class DetailsDialog(QDialog):
         self.tabs.addTab(self.backend_tab, "Location")
 
         self.button_box = QDialogButtonBox(
-            QDialogButtonBox.Ok | QDialogButtonBox.Cancel, self
+            cast(
+                QDialogButtonBox.StandardButton,
+                QDialogButtonBox.Ok | QDialogButtonBox.Cancel,
+            ),
+            self,
         )
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
-        self.layout.addWidget(self.button_box)
+        layout.addWidget(self.button_box)
 
-        self.setLayout(self.layout)
+        self.setLayout(layout)
 
         self.update()
 
@@ -66,7 +73,7 @@ class DetailsDialog(QDialog):
             box: QMessageBox = QMessageBox()
             box.setText("Error connecting using the provided information.")
             box.setStandardButtons(QMessageBox.Ok)
-            box.setDetailedText(Qt.convertFromPlainText(str(exc)))
+            box.setDetailedText(Qt.convertFromPlainText(str(exc)))  # type: ignore
             box.setTextFormat(Qt.RichText)
             box.setIcon(QMessageBox.Warning)
             box.exec_()
@@ -77,7 +84,7 @@ class DetailsDialog(QDialog):
     def isValid(self) -> bool:
         return self.backend_tab.isValid()
 
-    def update(self) -> None:
+    def handleUpdated(self) -> None:
 
         valid: bool = self.isValid()
 

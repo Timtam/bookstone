@@ -63,7 +63,7 @@ class LocalBackendTab(BackendTab):
         if len(files):
             self.folder_input.setText(files[0])
 
-        self.parent.update()
+        self.parent.updated.emit()
 
     def isValid(self) -> bool:
 

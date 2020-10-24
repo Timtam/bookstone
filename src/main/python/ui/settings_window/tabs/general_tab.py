@@ -9,13 +9,12 @@ from configuration_manager import ConfigurationManager
 class GeneralTab(QWidget):
 
     ask_on_exit_when_indexing: QCheckBox
-    layout: QVBoxLayout
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
 
         super().__init__(*args, **kwargs)
 
-        self.layout = QVBoxLayout(self)
+        layout = QVBoxLayout(self)
 
         self.ask_on_exit_when_indexing = QCheckBox(
             "Ask before exiting when an indexing operation is currently in progress",
@@ -24,11 +23,13 @@ class GeneralTab(QWidget):
         self.ask_on_exit_when_indexing.stateChanged.connect(
             self.askOnExitWhenIndexingChanged
         )
-        self.layout.addWidget(self.ask_on_exit_when_indexing)
+        layout.addWidget(self.ask_on_exit_when_indexing)
 
         config: ConfigurationManager = ConfigurationManager()
 
         self.ask_on_exit_when_indexing.setChecked(config.askBeforeExitWhenIndexing)
+
+        self.setLayout(layout)
 
     def askOnExitWhenIndexingChanged(self, state: int):
 

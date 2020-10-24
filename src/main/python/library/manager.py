@@ -15,7 +15,7 @@ from threads.priorizable_thread import PriorizableThread
 from threads.thread_pool import ThreadPool
 from utils import getLibrariesDirectory
 
-from . import Library
+from .library import Library
 from .node import Node
 
 

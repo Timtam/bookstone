@@ -1,6 +1,6 @@
 from py_singleton import singleton
 
-from threads import ThreadPool
+from threads.thread_pool import ThreadPool
 
 
 @singleton
