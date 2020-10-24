@@ -95,7 +95,6 @@ class LibrariesWindow(Window):
         library: Library = Library()
 
         dlg: DetailsDialog = DetailsDialog(tab, library, self)
-        dlg.setup()
         success: int = dlg.exec_()
 
         if not success:

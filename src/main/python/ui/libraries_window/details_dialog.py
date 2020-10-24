@@ -5,8 +5,11 @@ from PyQt5.QtWidgets import (
     QDialog,
     QDialogButtonBox,
     QHBoxLayout,
+    QLabel,
+    QLineEdit,
     QMessageBox,
     QTabWidget,
+    QWidget,
 )
 
 from backend import Backend
@@ -19,11 +22,13 @@ from .backend_tab import BackendTab
 class DetailsDialog(QDialog):
 
     backend_tab: BackendTab
-    backend_tab_t: Type[BackendTab]
     button_box: QDialogButtonBox
+    general_tab: QWidget
     library: Library
+    name_input: QLineEdit
+    name_input_was_edited: bool
     tabs: QTabWidget
-    updated: pyqtSignal
+    updated: pyqtSignal = pyqtSignal()
 
     def __init__(
         self, backend_tab: Type[BackendTab], library: Library, *args: Any, **kwargs: Any
@@ -31,19 +36,33 @@ class DetailsDialog(QDialog):
 
         super().__init__(*args, **kwargs)
 
-        self.backend_tab_t = backend_tab
         self.library = library
-        self.updated = pyqtSignal()
+        self.name_input_was_edited = False
 
         self.updated.connect(self.handleUpdated)
-
-    def setup(self) -> None:
 
         layout = QHBoxLayout(self)
 
         self.tabs = QTabWidget(self)
 
-        self.backend_tab = self.backend_tab_t(self, self.library.getBackend())
+        self.general_tab = QWidget(self)
+
+        general_layout: QHBoxLayout = QHBoxLayout(self.general_tab)
+
+        name_label: QLabel = QLabel("Name:", self.general_tab)
+        general_layout.addWidget(name_label)
+
+        self.name_input = QLineEdit(self.general_tab)
+        self.name_input.textChanged.connect(self.handleUpdated)
+        self.name_input.textEdited.connect(self.setNameInputWasEdited)
+        name_label.setBuddy(self.name_input)
+        general_layout.addWidget(self.name_input)
+
+        self.general_tab.setLayout(general_layout)
+
+        self.tabs.addTab(self.general_tab, "General")
+
+        self.backend_tab = backend_tab(self, self.library.getBackend())
 
         self.tabs.addTab(self.backend_tab, "Location")
 
@@ -60,7 +79,7 @@ class DetailsDialog(QDialog):
 
         self.setLayout(layout)
 
-        self.update()
+        self.updated.emit()
 
     def testConnection(self) -> bool:
 
@@ -82,7 +101,7 @@ class DetailsDialog(QDialog):
         return True
 
     def isValid(self) -> bool:
-        return self.backend_tab.isValid()
+        return self.name_input.text() != "" and self.backend_tab.isValid()
 
     def handleUpdated(self) -> None:
 
@@ -90,7 +109,17 @@ class DetailsDialog(QDialog):
 
         self.button_box.button(QDialogButtonBox.Ok).setEnabled(valid)
 
+        if (
+            not self.name_input_was_edited
+            and self.backend_tab.getBackend().getPath() != "."
+        ):
+            self.name_input.setText(self.backend_tab.getBackend().getPath())
+
     def accept(self) -> None:
         if self.testConnection():
             self.library.setBackend(self.backend_tab.getBackend())
+            self.library.setName(self.name_input.text())
             return super().accept()
+
+    def setNameInputWasEdited(self) -> None:
+        self.name_input_was_edited = True
