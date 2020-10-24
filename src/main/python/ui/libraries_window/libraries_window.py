@@ -13,15 +13,15 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
-from backend import Backend
 from library import Library
 from library.manager import LibraryManager
 from storage import Storage
 from utils import getLibrariesDirectory
 
 from .. import Window
-from .backend_dialog import BackendDialog
-from .backend_dialogs import BackendDialogs
+from .backend_tab import BackendTab
+from .backend_tabs import BackendTabs
+from .details_dialog import DetailsDialog
 from .libraries_model import LibrariesModel
 
 
@@ -65,13 +65,13 @@ class LibrariesWindow(Window):
         self.add_actions = []
 
         i: int
-        dialog: Type[BackendDialog]
+        tab: Type[BackendTab]
 
-        for i, dialog in enumerate(BackendDialogs):
-            act: QAction = QAction(dialog.getName(), self.add_menu)
+        for i, tab in enumerate(BackendTabs):
+            act: QAction = QAction(tab.getName(), self.add_menu)
             self.add_menu.addAction(act)
             self.add_actions.append(act)
-            act.triggered.connect(self.generateShowAddDialogLambda(dialog))
+            act.triggered.connect(self.generateShowAddDialogLambda(tab))
 
         self.add_button.setMenu(self.add_menu)
 
@@ -90,31 +90,26 @@ class LibrariesWindow(Window):
 
         self.initializeIndexingButton()
 
-    def showAddDialog(self, dialog: Type[BackendDialog]) -> None:
+    def showAddDialog(self, tab: Type[BackendTab]) -> None:
 
-        dlg: BackendDialog = dialog(self)
+        library: Library = Library()
+
+        dlg: DetailsDialog = DetailsDialog(tab, library, self)
         dlg.setup()
         success: bool = dlg.exec_()
 
         if not success:
             return
 
-        backend: Backend = dlg.getBackend()
-
-        lib: Library = Library()
-        lib.setBackend(backend)
-
         store: Storage = Storage()
-        store.getLibraryManager().addLibrary(lib)
+        store.getLibraryManager().addLibrary(library)
         store.getLibraryManager().save(getLibrariesDirectory())
 
         self.libraries_model.reloadLibraries()
         self.initializeIndexingButton()
 
-    def generateShowAddDialogLambda(
-        self, dialog: Type[BackendDialog]
-    ) -> Callable[[], None]:
-        return lambda: self.showAddDialog(dialog)
+    def generateShowAddDialogLambda(self, tab: Type[BackendTab]) -> Callable[[], None]:
+        return lambda: self.showAddDialog(tab)
 
     def removeLibrary(self, lib: Library) -> None:
 
