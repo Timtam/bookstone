@@ -16,13 +16,13 @@ from backend import Backend
 from library.library import Library
 from library.manager import LibraryManager
 from storage import Storage
+from ui import Window
+from ui.models.libraries import LibrariesModel
 from utils import getLibrariesDirectory
 
-from .. import Window
 from .backend_tab import BackendTab
 from .backend_tabs import BackendTabs
 from .details_dialog import DetailsDialog
-from .libraries_model import LibrariesModel
 
 
 class LibrariesWindow(Window):

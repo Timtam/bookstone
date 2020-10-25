@@ -2,7 +2,8 @@ from typing import Any
 
 from PyQt5.QtWidgets import QPushButton, QTabWidget, QVBoxLayout
 
-from .. import Window
+from ui import Window
+
 from .tabs import GeneralTab
 
 

@@ -7,7 +7,7 @@ from configuration_manager import ConfigurationManager
 from library.manager import LibraryManager
 from storage import Storage
 from ui import WindowController
-from ui.main_window.main_window import MainWindow
+from ui.windows.main import MainWindow
 from utils import getConfigFile, getLibrariesDirectory
 
 if __name__ == "__main__":

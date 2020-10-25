@@ -2,6 +2,7 @@ import functools
 import string
 from typing import Any, Dict, Iterable, Optional, Tuple
 
+from .tag import Tag
 from .tags import Tags
 
 
@@ -78,3 +79,9 @@ class NamingScheme:
             "standalone": self._standalone,
             "volume": self._volume,
         }
+
+    def resolveStandalone(self, tags: Iterable[Tag] = Tags) -> str:
+        return self._standalone.format(**{t.name: t.value for t in tags})
+
+    def resolveVolume(self, tags: Iterable[Tag] = Tags) -> str:
+        return self._volume.format(**{t.name: t.value for t in tags})

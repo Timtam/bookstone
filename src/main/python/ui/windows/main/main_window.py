@@ -2,11 +2,9 @@ from typing import Any
 
 from PyQt5.QtWidgets import QAction, QMenu, QMenuBar
 
-from ui import WindowController
-from ui.libraries_window.libraries_window import LibrariesWindow
-from ui.settings_window.settings_window import SettingsWindow
-
-from .. import Window
+from ui import Window, WindowController
+from ui.windows.libraries import LibrariesWindow
+from ui.windows.settings import SettingsWindow
 
 
 class MainWindow(Window):
