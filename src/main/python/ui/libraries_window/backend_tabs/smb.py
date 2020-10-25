@@ -26,7 +26,7 @@ class SMBBackendTab(BackendTab):
         path_label: QLabel = QLabel("Path:", self)
         layout.addWidget(path_label)
 
-        self.path_input = QLineEdit(self)
+        self.path_input = QLineEdit(self.backend.getPath(), self)
         self.path_input.textChanged.connect(self.parent.updated.emit)
         path_label.setBuddy(self.path_input)
         layout.addWidget(self.path_input)
@@ -34,7 +34,9 @@ class SMBBackendTab(BackendTab):
         username_label: QLabel = QLabel("Username:", self)
         layout.addWidget(username_label)
 
-        self.username_input = QLineEdit(self)
+        self.username_input = QLineEdit(
+            cast(SMBBackend, self.backend).getUsername(), self
+        )
         self.username_input.textChanged.connect(self.parent.updated.emit)
         username_label.setBuddy(self.username_input)
         layout.addWidget(self.username_input)
@@ -42,7 +44,9 @@ class SMBBackendTab(BackendTab):
         password_label = QLabel("Password:", self)
         layout.addWidget(password_label)
 
-        self.password_input = QLineEdit(self)
+        self.password_input = QLineEdit(
+            cast(SMBBackend, self.backend).getPassword(), self
+        )
         self.password_input.setEchoMode(QLineEdit.Password)
         self.password_input.textChanged.connect(self.parent.updated.emit)
         password_label.setBuddy(self.password_input)

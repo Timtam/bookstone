@@ -4,9 +4,7 @@ from PyQt5.QtCore import QEvent, QObject
 from PyQt5.QtGui import QContextMenuEvent
 from PyQt5.QtWidgets import (
     QAction,
-    QInputDialog,
     QLabel,
-    QLineEdit,
     QMenu,
     QPushButton,
     QTableView,
@@ -14,6 +12,7 @@ from PyQt5.QtWidgets import (
     QWidget,
 )
 
+from backend import Backend
 from library.library import Library
 from library.manager import LibraryManager
 from storage import Storage
@@ -67,7 +66,7 @@ class LibrariesWindow(Window):
         i: int
         tab: Type[BackendTab]
 
-        for i, tab in enumerate(BackendTabs):
+        for i, tab in enumerate(BackendTabs.values()):
             act: QAction = QAction(tab.getName(), self.add_menu)
             self.add_menu.addAction(act)
             self.add_actions.append(act)
@@ -121,23 +120,19 @@ class LibrariesWindow(Window):
         self.libraries_model.reloadLibraries()
         self.initializeIndexingButton()
 
-    def renameLibrary(self, lib: Library) -> None:
+    def editLibrary(self, lib: Library) -> None:
 
-        text: str
-        ok: bool
-
-        text, ok = QInputDialog.getText(
-            self,
-            "Bookstone - Rename Library",
-            "Enter new name:",
-            QLineEdit.Normal,
-            lib.getName(),
+        dlg: DetailsDialog = DetailsDialog(
+            BackendTabs[cast(Type[Backend], type(lib.getBackend()))], lib, self
         )
 
-        if ok:
-            lib.setName(text)
-            Storage().getLibraryManager().save(getLibrariesDirectory())
-            self.libraries_model.updateLibrary(lib)
+        success: int = dlg.exec_()
+
+        if not success:
+            return
+
+        Storage().getLibraryManager().save(getLibrariesDirectory())
+        self.libraries_model.updateLibrary(lib)
 
     def eventFilter(self, source: QObject, event: QEvent) -> bool:
 
@@ -150,8 +145,8 @@ class LibrariesWindow(Window):
             if index >= 0:
                 lib: Library = Storage().getLibraryManager().getLibraries()[index]
                 menu: QMenu = QMenu(self.libraries_list)
-                act = QAction("Rename", menu)
-                act.triggered.connect(lambda: self.renameLibrary(lib))
+                act = QAction("Edit", menu)
+                act.triggered.connect(lambda: self.editLibrary(lib))
                 menu.addAction(act)
                 act = QAction("Remove", menu)
                 act.triggered.connect(lambda: self.removeLibrary(lib))

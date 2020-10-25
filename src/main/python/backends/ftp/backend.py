@@ -75,11 +75,20 @@ class FTPBackend(Backend):
         self._port = serialized.get("port", 21)
         self._ftps = serialized.get("ftps", False)
 
+    def getUsername(self) -> str:
+        return self._username
+
     def setUsername(self, username: str) -> None:
         self._username = username
 
+    def getPassword(self) -> str:
+        return self._password
+
     def setPassword(self, password: str) -> None:
         self._password = password
+
+    def getPort(self) -> int:
+        return self._port
 
     def setPort(self, port: int) -> None:
 
@@ -88,8 +97,14 @@ class FTPBackend(Backend):
 
         self._port = port
 
+    def getHost(self) -> str:
+        return self._host
+
     def setHost(self, host: str) -> None:
         self._host = host
+
+    def getFTPS(self) -> bool:
+        return self._ftps
 
     def setFTPS(self, ftps: bool) -> None:
 

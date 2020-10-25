@@ -52,7 +52,7 @@ class DetailsDialog(QDialog):
         name_label: QLabel = QLabel("Name:", self.general_tab)
         general_layout.addWidget(name_label)
 
-        self.name_input = QLineEdit(self.general_tab)
+        self.name_input = QLineEdit(self.library.getName(), self.general_tab)
         self.name_input.textChanged.connect(self.handleUpdated)
         self.name_input.textEdited.connect(self.setNameInputWasEdited)
         name_label.setBuddy(self.name_input)

@@ -24,7 +24,7 @@ class LocalBackendTab(BackendTab):
         folder_label: QLabel = QLabel("Library directory:", self)
         layout.addWidget(folder_label)
 
-        self.folder_input = QLineEdit(self)
+        self.folder_input = QLineEdit(self.backend.getPath(), self)
         self.folder_input.setReadOnly(True)
         folder_label.setBuddy(self.folder_input)
         layout.addWidget(self.folder_input)

@@ -30,7 +30,7 @@ class FTPBackendTab(BackendTab):
         host_label: QLabel = QLabel("Host:", self)
         layout.addWidget(host_label)
 
-        self.host_input = QLineEdit(self)
+        self.host_input = QLineEdit(cast(FTPBackend, self.backend).getHost(), self)
         self.host_input.textChanged.connect(self.parent.updated.emit)
         host_label.setBuddy(self.host_input)
         layout.addWidget(self.host_input)
@@ -38,7 +38,9 @@ class FTPBackendTab(BackendTab):
         username_label: QLabel = QLabel("Username:", self)
         layout.addWidget(username_label)
 
-        self.username_input = QLineEdit(self)
+        self.username_input = QLineEdit(
+            cast(FTPBackend, self.backend).getUsername(), self
+        )
         self.username_input.textChanged.connect(self.parent.updated.emit)
         username_label.setBuddy(self.username_input)
         layout.addWidget(self.username_input)
@@ -46,7 +48,9 @@ class FTPBackendTab(BackendTab):
         password_label: QLabel = QLabel("Password:", self)
         layout.addWidget(password_label)
 
-        self.password_input = QLineEdit(self)
+        self.password_input = QLineEdit(
+            cast(FTPBackend, self.backend).getPassword(), self
+        )
         self.password_input.setEchoMode(QLineEdit.Password)
         self.password_input.textChanged.connect(self.parent.updated.emit)
         password_label.setBuddy(self.password_input)
@@ -55,7 +59,7 @@ class FTPBackendTab(BackendTab):
         port_label: QLabel = QLabel("Port:", self)
         layout.addWidget(port_label)
 
-        self.port_input = QLineEdit(self)
+        self.port_input = QLineEdit(str(cast(FTPBackend, self.backend).getPort()), self)
         self.port_input.setText(str(21))
         validator = QIntValidator(self)
         validator.setBottom(1)
@@ -66,13 +70,14 @@ class FTPBackendTab(BackendTab):
         path_label: QLabel = QLabel("Path:", self)
         layout.addWidget(path_label)
 
-        self.path_input = QLineEdit(self)
+        self.path_input = QLineEdit(self.backend.getPath(), self)
         self.path_input.setText("/")
         self.path_input.textChanged.connect(self.parent.updated.emit)
         path_label.setBuddy(self.path_input)
         layout.addWidget(self.path_input)
 
         self.ftps_checkbox = QCheckBox("FTPS", self)
+        self.ftps_checkbox.setChecked(cast(FTPBackend, self.backend).getFTPS())
         layout.addWidget(self.ftps_checkbox)
 
         self.setLayout(layout)

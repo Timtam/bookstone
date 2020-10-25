@@ -42,8 +42,14 @@ class SMBBackend(Backend):
         self._username = serialized.get("username", "")
         self._password = serialized.get("password", "")
 
+    def getUsername(self) -> str:
+        return self._username
+
     def setUsername(self, username: str) -> None:
         self._username = username
+
+    def getPassword(self) -> str:
+        return self._password
 
     def setPassword(self, password: str) -> None:
         self._password = password
