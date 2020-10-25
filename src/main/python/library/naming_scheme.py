@@ -1,6 +1,5 @@
-import functools
 import string
-from typing import Any, Dict, Iterable, Optional, Tuple
+from typing import Dict, Iterable, Optional, Tuple
 
 from .tag import Tag
 from .tags import Tags
@@ -26,46 +25,41 @@ class NamingScheme:
         self._default = default
 
         self.name = name
-        self.standalone = standalone  # type: ignore
-        self.volume = volume  # type: ignore
+        self.standalone = standalone
+        self.volume = volume
 
-    def checkValid(f: Any) -> Any:
-        def decorator(self, f: Any) -> Any:
-            @functools.wraps(f)
-            def check(self, value: str) -> Any:
+    def checkValid(self, value: str) -> None:
 
-                placeholders: Iterable[
-                    Tuple[str, Optional[str], Optional[str], Optional[str]]
-                ] = string.Formatter().parse(value)
-                p: Tuple[str, Optional[str], Optional[str], Optional[str]]
+        placeholders: Iterable[
+            Tuple[str, Optional[str], Optional[str], Optional[str]]
+        ] = string.Formatter().parse(value)
+        p: Tuple[str, Optional[str], Optional[str], Optional[str]]
 
-                for p in placeholders:
+        for p in placeholders:
 
-                    if isinstance(p[1], str) and p[1] not in Tags:
-                        raise AttributeError(f"invalid tag specified: {p[1]}")
-
-                return f(self, value)
-
-            return check
-
-        return decorator
+            if isinstance(p[1], str) and p[1] not in Tags:
+                raise AttributeError(f"invalid tag specified: {p[1]}")
 
     @property
     def volume(self) -> str:
         return self._volume
 
-    @volume.setter  # type: ignore
-    @checkValid
+    @volume.setter
     def volume(self, value: str) -> None:
+
+        self.checkValid(value)
+
         self._volume = value
 
     @property
     def standalone(self) -> str:
         return self._standalone
 
-    @standalone.setter  # type: ignore
-    @checkValid
+    @standalone.setter
     def standalone(self, value: str) -> None:
+
+        self.checkValid(value)
+
         self._standalone = value
 
     @property

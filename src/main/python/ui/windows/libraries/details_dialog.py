@@ -8,6 +8,7 @@ from PyQt5.QtWidgets import (
     QLabel,
     QLineEdit,
     QMessageBox,
+    QTableView,
     QTabWidget,
     QWidget,
 )
@@ -15,6 +16,7 @@ from PyQt5.QtWidgets import (
 from backend import Backend
 from exceptions import BackendError
 from library.library import Library
+from ui.models.naming_schemes import NamingSchemesModel
 
 from .backend_tab import BackendTab
 
@@ -27,6 +29,8 @@ class DetailsDialog(QDialog):
     library: Library
     name_input: QLineEdit
     name_input_was_edited: bool
+    naming_schemes_list: QTableView
+    naming_schemes_model: NamingSchemesModel
     tabs: QTabWidget
     updated: pyqtSignal = pyqtSignal()
 
@@ -57,6 +61,17 @@ class DetailsDialog(QDialog):
         self.name_input.textEdited.connect(self.setNameInputWasEdited)
         name_label.setBuddy(self.name_input)
         general_layout.addWidget(self.name_input)
+
+        naming_schemes_label: QLabel = QLabel("Naming scheme:", self.general_tab)
+        general_layout.addWidget(naming_schemes_label)
+
+        self.naming_schemes_list = QTableView(self.general_tab)
+        self.naming_schemes_list.setTabKeyNavigation(False)
+        self.naming_schemes_model = NamingSchemesModel()
+        self.naming_schemes_list.setModel(self.naming_schemes_model)
+        self.naming_schemes_list.setSelectionMode(QTableView.SingleSelection)
+        naming_schemes_label.setBuddy(self.naming_schemes_list)
+        general_layout.addWidget(self.naming_schemes_list)
 
         self.general_tab.setLayout(general_layout)
 
