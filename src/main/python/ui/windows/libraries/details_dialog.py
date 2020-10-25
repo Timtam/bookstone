@@ -1,4 +1,4 @@
-from typing import Any, Type, cast
+from typing import Any, List, Type, cast
 
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtWidgets import (
@@ -14,8 +14,10 @@ from PyQt5.QtWidgets import (
 )
 
 from backend import Backend
+from configuration_manager import ConfigurationManager
 from exceptions import BackendError
 from library.library import Library
+from library.naming_scheme import NamingScheme
 from ui.models.naming_schemes import NamingSchemesModel
 
 from .backend_tab import BackendTab
@@ -131,10 +133,28 @@ class DetailsDialog(QDialog):
             self.name_input.setText(self.backend_tab.getBackend().getPath())
 
     def accept(self) -> None:
-        if self.testConnection():
-            self.library.setBackend(self.backend_tab.getBackend())
-            self.library.setName(self.name_input.text())
-            return super().accept()
+
+        if not self.testConnection():
+            return
+
+        self.library.setBackend(self.backend_tab.getBackend())
+        self.library.setName(self.name_input.text())
+
+        # resolving naming scheme selection
+
+        indices: List[int] = [
+            m.row() for m in self.naming_schemes_list.selectionModel().selectedIndexes()
+        ]
+
+        assert len(indices) == 1
+
+        scheme: NamingScheme = cast(
+            List[NamingScheme], ConfigurationManager().namingSchemes
+        )[indices[0]]
+
+        self.library.setNamingScheme(scheme)
+
+        return super().accept()
 
     def setNameInputWasEdited(self) -> None:
         self.name_input_was_edited = True

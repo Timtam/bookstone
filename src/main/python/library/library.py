@@ -5,6 +5,7 @@ from backend import Backend
 from backends import Backends
 
 from .book import Book
+from .naming_scheme import NamingScheme
 from .node import Node
 
 
@@ -13,6 +14,7 @@ class Library:
     _backend: Optional[Backend]
     _books: List[Book]
     _name: str
+    _naming_scheme: Optional[NamingScheme]
     _tree: Node
     _uuid: str
 
@@ -22,6 +24,7 @@ class Library:
         self._books = []
         self._uuid = str(uuid.uuid4())
         self._name = ""
+        self._naming_scheme = None
         self._tree = Node()
 
     def getBackend(self) -> Optional[Backend]:
@@ -113,3 +116,9 @@ class Library:
 
     def getBooks(self) -> List[Book]:
         return self._books[:]
+
+    def getNamingScheme(self) -> Optional[NamingScheme]:
+        return self._naming_scheme
+
+    def setNamingScheme(self, scheme: NamingScheme) -> None:
+        self._naming_scheme = scheme
