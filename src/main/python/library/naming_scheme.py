@@ -87,3 +87,11 @@ class NamingScheme:
         elif isinstance(other, str):
             return self.name == other
         return NotImplemented
+
+    # returns tree depth of a string
+    # usually means that it just counts the delimiters (/) and adds 1
+    # might become more complicated later on
+    # will mainly be used to pre-filter a node tree using Node.findChildren()
+
+    def getDepth(self, value: str) -> int:
+        return len(value.split("/"))

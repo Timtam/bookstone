@@ -163,6 +163,16 @@ class Node:
 
         return None
 
+    def findChildren(self, depth: int = 1) -> Iterator["Node"]:
+
+        child: Node
+
+        for child in self._children:
+            if depth == 1:
+                yield child
+            else:
+                yield from child.findChildren(depth=depth - 1)
+
     def __str__(self) -> str:
 
         desc: str = "<"
