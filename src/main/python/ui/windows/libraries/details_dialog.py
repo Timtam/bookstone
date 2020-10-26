@@ -72,6 +72,14 @@ class DetailsDialog(QDialog):
         self.naming_schemes_model = NamingSchemesModel()
         self.naming_schemes_list.setModel(self.naming_schemes_model)
         self.naming_schemes_list.setSelectionMode(QTableView.SingleSelection)
+        self.naming_schemes_list.setSelectionBehavior(QTableView.SelectRows)
+        self.naming_schemes_list.selectRow(
+            0
+            if not self.library.getNamingScheme()
+            else cast(List[NamingScheme], ConfigurationManager().namingSchemes).index(
+                cast(NamingScheme, self.library.getNamingScheme())
+            )
+        )
         naming_schemes_label.setBuddy(self.naming_schemes_list)
         general_layout.addWidget(self.naming_schemes_list)
 
@@ -118,7 +126,11 @@ class DetailsDialog(QDialog):
         return True
 
     def isValid(self) -> bool:
-        return self.name_input.text() != "" and self.backend_tab.isValid()
+        return (
+            self.name_input.text() != ""
+            and self.naming_schemes_list.selectionModel().hasSelection()
+            and self.backend_tab.isValid()
+        )
 
     def handleUpdated(self) -> None:
 
@@ -143,7 +155,7 @@ class DetailsDialog(QDialog):
         # resolving naming scheme selection
 
         indices: List[int] = [
-            m.row() for m in self.naming_schemes_list.selectionModel().selectedIndexes()
+            m.row() for m in self.naming_schemes_list.selectionModel().selectedRows()
         ]
 
         assert len(indices) == 1

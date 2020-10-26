@@ -52,6 +52,7 @@ class LibrariesWindow(Window):
         self.libraries_model = LibrariesModel()
         self.libraries_list.setModel(self.libraries_model)
         self.libraries_list.setSelectionMode(QTableView.SingleSelection)
+        self.libraries_list.setSelectionBehavior(QTableView.SelectRows)
         self.libraries_list.installEventFilter(self)
         self.libraries_label.setBuddy(self.libraries_list)
         layout.addWidget(self.libraries_list)

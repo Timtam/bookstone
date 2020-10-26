@@ -1,5 +1,5 @@
 import string
-from typing import Dict, Iterable, Optional, Tuple
+from typing import Any, Dict, Iterable, Optional, Tuple, cast
 
 from .tag import Tag
 from .tags import Tags
@@ -79,3 +79,11 @@ class NamingScheme:
 
     def resolveVolume(self, tags: Iterable[Tag] = Tags) -> str:
         return self._volume.format(**{t.name: t.value for t in tags})
+
+    def __eq__(self, other: Any) -> bool:
+
+        if isinstance(other, NamingScheme):
+            return self.name == cast(NamingScheme, other).name
+        elif isinstance(other, str):
+            return self.name == other
+        return NotImplemented
