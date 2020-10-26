@@ -1,8 +1,10 @@
 import uuid
+import warnings
 from typing import Any, Dict, List, Optional, Type, cast
 
 from backend import Backend
 from backends import Backends
+from configuration_manager import ConfigurationManager
 
 from .book import Book
 from .naming_scheme import NamingScheme
@@ -48,6 +50,7 @@ class Library:
             "uuid": self._uuid,
             "tree": cast(Node, self._tree).serialize(),
             "books": [b.serialize() for b in self._books],
+            "naming_scheme": cast(NamingScheme, self._naming_scheme).name,
         }
 
     def deserialize(self, serialized: Dict[str, Any]) -> None:
@@ -94,6 +97,26 @@ class Library:
             book_obj.deserialize(book)
 
             self._books.append(book_obj)
+
+        scheme_s: str = serialized.get("naming_scheme", "")
+
+        if not scheme_s:
+
+            warnings.warn(
+                f"library '{self._name}' has no naming scheme. Will use the default naming scheme instead."
+            )
+
+            self._naming_scheme = cast(
+                List[NamingScheme], ConfigurationManager().namingSchemes
+            )[0]
+
+        else:
+
+            scheme_idx: int = cast(List[NamingScheme], ConfigurationManager().namingSchemes).index(scheme_s)  # type: ignore
+
+            self.naming_scheme = cast(
+                List[NamingScheme], ConfigurationManager().namingSchemes
+            )[scheme_idx]
 
     def getUUID(self) -> str:
         return self._uuid
