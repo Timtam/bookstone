@@ -1,43 +1,60 @@
-import gc
 import hashlib
 import json
 import os
 import os.path
+import queue
 from json.decoder import JSONDecodeError
-from typing import Any, Dict, List, TextIO, Tuple
+from typing import Any, Dict, List, Optional, TextIO, cast
 
 import natsort
 from PyQt5.QtCore import QObject, pyqtSignal
 
-from storage import Storage
-from threads.folder_structure_reader import FolderStructureReaderThread
-from threads.priorizable_thread import PriorizableThread
-from threads.thread_pool import ThreadPool
-from utils import getLibrariesDirectory
+from backend import Backend
+from utils import getSupportedFileExtensions
 
+from .constants import INDEXING, PROGRESS
 from .library import Library
 from .node import Node
 
-
 # keeps track of all libraries
-# it also manages the library indexing process by enqueuing threads where necessary
+# it also manages the library indexing process and communicates the progress for the ui to display
+
+
 class LibraryManager(QObject):
 
-    indexingFinished: pyqtSignal = pyqtSignal(bool)
-    # indexerResult = pyqtSignal(Library, Node)
+    # qt signals
+    # used for communication with ui elements while indexing libraries
+
+    # indexing operation started
     indexingStarted: pyqtSignal = pyqtSignal()
-    # indexerStatusChanged = pyqtSignal(Library, str)
+    # indexing operation finished
+    # parameter: success
+    indexingFinished: pyqtSignal = pyqtSignal(bool)
+    # name of the library now going to be indexed
+    indexingLibrary: pyqtSignal = pyqtSignal(str)
+    # sent whenever something changes when indexing
+    # parameter is a tuple
+    # first parameter is an int (INDEXING enum)
+    # second parameter is an int (PROGRESS enum)
+    # all following parameters depend on the progress enum
+    indexingProgress: pyqtSignal = pyqtSignal(tuple)
+
+    _cancel_indexing: bool
+    _indexing: bool
     _libraries: List[Library]
     _library_hashes: List[bytes]
 
     def __init__(self) -> None:
 
-        QObject.__init__(self)
+        super().__init__()
 
+        self._cancel_indexing = False
+        self._indexing = False
         self._libraries = []
         self._library_hashes = []
 
-        Storage().getThreadPool().signals.threadFinished.connect(self._thread_finished)
+        self.indexingStarted.connect(lambda: self._set_indexing(True))
+        self.indexingFinished.connect(lambda: self._set_indexing(False))
 
     def addLibrary(self, lib: Library) -> None:
         self._libraries.append(lib)
@@ -139,66 +156,119 @@ class LibraryManager(QObject):
         for file in libfiles:
             os.remove(os.path.join(directory, file))
 
-    def isIndexing(self) -> bool:
-        return (
-            Storage().getThreadPool().currentThreadCount > 0
-            or Storage().getThreadPool().waitingThreadCount > 0
-        )
+    def index(self) -> None:
 
-    def startIndexing(self) -> bool:
-
-        if self.isIndexing():
-            return False
-
-        pool: ThreadPool = Storage().getThreadPool()
+        _: str
+        dir: str
+        ext: str
         lib: Library
-
-        for lib in self._libraries:
-            thread: FolderStructureReaderThread = FolderStructureReaderThread(lib)
-
-            thread.signals.result.connect(self._thread_result)
-
-            pool.enqueue(thread)
 
         self.indexingStarted.emit()
 
-        return True
+        for lib in self._libraries:
+
+            self.indexingLibrary.emit(lib.getName())
+
+            tree: Node = cast(Node, lib.getTree())
+            tree.setNotIndexed()
+
+            backend: Backend = cast(Backend, lib.getBackend())
+
+            open: queue.Queue[Node] = queue.Queue()
+
+            open.put(tree)
+
+            while not open.empty():
+
+                if self._cancel_indexing:
+                    self.indexingFinished.emit(False)
+                    return
+
+                next: Node = open.get()
+
+                self.indexingProgress.emit(
+                    (
+                        INDEXING.READING,
+                        PROGRESS.UPDATE_MAXIMUM,
+                        1,
+                    )
+                )
+
+                self.indexingProgress.emit(
+                    (
+                        INDEXING.READING,
+                        PROGRESS.VALUE,
+                        1,
+                    )
+                )
+
+                next_path: str = next.getPath()
+
+                dir_list: List[str] = backend.listDirectory(next_path)
+
+                self.indexingProgress.emit(
+                    (
+                        INDEXING.READING,
+                        PROGRESS.UPDATE_MAXIMUM,
+                        len(dir_list),
+                    )
+                )
+
+                for dir in dir_list:
+
+                    if self._cancel_indexing:
+                        self.indexingFinished.emit(False)
+                        return
+
+                    self.indexingProgress.emit(
+                        (
+                            INDEXING.READING,
+                            PROGRESS.VALUE,
+                            1,
+                        )
+                    )
+
+                    new: Optional[Node] = tree.findChild(os.path.join(next_path, dir))
+
+                    if new is None:
+                        new = Node()
+                        new.setName(dir)
+
+                    if backend.isDirectory(os.path.join(next_path, dir)):
+                        new.setDirectory()
+                    else:
+                        new.setFile()
+
+                    if new.isFile():
+
+                        # check file extensions
+                        _, ext = os.path.splitext(new.getName())
+
+                        if not ext.lower() in getSupportedFileExtensions():
+                            if new.getParent() is not None:
+                                next.removeChild(new)
+                            continue
+                        else:
+                            new.setIndexed()
+
+                    if next.findChild(new) is None:
+                        next.addChild(new)
+
+                    if new.isDirectory():
+                        open.put(new)
+
+                next.setIndexed()
+
+            tree.clean()
+
+        self.indexingFinished.emit(True)
+
+    def _set_indexing(self, indexing: bool) -> None:
+        self._indexing = indexing
 
     def cancelIndexing(self) -> None:
 
-        if not self.isIndexing():
+        if not self._indexing and not self._cancel_indexing:
             return
 
-        Storage().getThreadPool().cancelAll()
-
-    def _thread_result(self, params: Tuple[Library, Node]) -> None:
-
-        child: Node
-        lib: Library
-        tree: Node
-
-        lib, tree = params
-
-        # self.indexerResult.emit(lib, tree)
-
-        if lib in self._libraries:
-
-            old_tree: Node = lib.getTree()
-            old_tree.removeAllChildren()
-            gc.collect()
-
-            for child in tree.getChildren():
-                old_tree.addChild(child)
-
-    def _thread_finished(self, thread: PriorizableThread, success: bool) -> None:
-
-        pool: ThreadPool = Storage().getThreadPool()
-
-        if pool.currentThreadCount == 0 and pool.waitingThreadCount == 0:
-
-            self.save(getLibrariesDirectory())
-
-            self.indexingFinished.emit(success)
-
-    def _indexer_status_changed(self, lib: Library, msg: str) -> None:
-        self.indexerStatusChanged.emit(lib, msg)
+        self._cancel_indexing = True

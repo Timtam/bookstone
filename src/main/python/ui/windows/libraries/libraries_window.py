@@ -1,18 +1,19 @@
-from typing import Any, Callable, List, Type, cast
+from typing import Any, Callable, List, Tuple, Type, Union, cast
 
-from PyQt5.QtCore import QEvent, QObject
+from PyQt5.QtCore import QEvent, QObject, Qt
 from PyQt5.QtGui import QContextMenuEvent
 from PyQt5.QtWidgets import (
     QAction,
     QLabel,
     QMenu,
+    QProgressDialog,
     QPushButton,
     QTableView,
     QVBoxLayout,
-    QWidget,
 )
 
 from backend import Backend
+from library.constants import INDEXING, PROGRESS
 from library.library import Library
 from library.manager import LibraryManager
 from storage import Storage
@@ -75,7 +76,8 @@ class LibrariesWindow(Window):
 
         self.add_button.setMenu(self.add_menu)
 
-        self.indexing_button = QPushButton(self)
+        self.indexing_button = QPushButton("Index libraries", self)
+        self.indexing_button.pressed.connect(self.runIndexer)
         layout.addWidget(self.indexing_button)
 
         self.close_button = QPushButton("Close", self)
@@ -83,12 +85,6 @@ class LibrariesWindow(Window):
         layout.addWidget(self.close_button)
 
         self.setLayout(layout)
-
-        manager: LibraryManager = Storage().getLibraryManager()
-        manager.indexingStarted.connect(self.indexingHandler)
-        manager.indexingFinished.connect(self.indexingHandler)
-
-        self.initializeIndexingButton()
 
     def showAddDialog(self, tab: Type[BackendTab]) -> None:
 
@@ -155,56 +151,67 @@ class LibrariesWindow(Window):
                 menu.exec_()
 
                 return True
-        return QWidget.eventFilter(self, source, event)
+        return super().eventFilter(source, event)
 
-    def close(self) -> bool:
+    def runIndexer(self) -> None:
 
-        manager: LibraryManager = Storage().getLibraryManager()
-        manager.indexingStarted.disconnect(self.indexingHandler)
-        manager.indexingFinished.disconnect(self.indexingHandler)
-
-        self.closed.emit()
-
-        return super().close()
-
-    def indexingHandler(self, success: Any = None) -> None:
-        self.initializeIndexingButton()
-
-    def startIndexing(self) -> None:
-        Storage().getLibraryManager().startIndexing()
-        self.initializeIndexingButton()
-
-    def cancelIndexing(self) -> None:
-        Storage().getLibraryManager().cancelIndexing()
-        self.initializeIndexingButton()
-
-    def initializeIndexingButton(self) -> None:
-
+        dlg: QProgressDialog
+        current_value: int = 0
+        maximum: int = 0
         manager: LibraryManager = Storage().getLibraryManager()
 
-        libs: int = len(manager.getLibraries())
+        def library_fun(lib: str) -> None:
 
-        if libs == 0:
-            self.indexing_button.setEnabled(False)
-        else:
-            self.indexing_button.setEnabled(True)
+            nonlocal current_value, maximum
 
-        if not manager.isIndexing() or libs == 0:
+            dlg.setWindowTitle(f"Bookstone - Indexing library {lib}...")
 
-            try:
-                self.indexing_button.pressed.disconnect()
-            except TypeError:
-                pass
+            dlg.reset()
 
-            self.indexing_button.pressed.connect(self.startIndexing)
-            self.indexing_button.setText("Start indexing")
+            current_value = 0
+            maximum = 0
+            dlg.setValue(current_value)
+            dlg.setMaximum(maximum)
 
-        else:
+        def progress_fun(t: Tuple[int, int, Union[str, int]]) -> None:
 
-            try:
-                self.indexing_button.pressed.disconnect()
-            except TypeError:
-                pass
+            nonlocal current_value, maximum
 
-            self.indexing_button.pressed.connect(self.cancelIndexing)
-            self.indexing_button.setText("Cancel indexing")
+            op: int = t[0]
+            msg: int = t[1]
+
+            if op == INDEXING.READING and msg == PROGRESS.VALUE:
+                current_value += cast(int, t[2])
+                dlg.setValue(current_value)
+            elif op == INDEXING.READING and msg == PROGRESS.UPDATE_MAXIMUM:
+                maximum += cast(int, t[2])
+                dlg.setMaximum(maximum)
+            elif op == INDEXING.READING and msg == PROGRESS.MESSAGE:
+                dlg.setLabelText(
+                    cast(str, t[2]).format(value=current_value, maximum=maximum)
+                )
+
+        def finished_fun(success: bool) -> None:
+
+            nonlocal dlg
+
+            if not success:
+                dlg.cancel()
+            else:
+                dlg.close()
+
+        manager.indexingFinished.connect(finished_fun)
+        manager.indexingLibrary.connect(library_fun)
+        manager.indexingProgress.connect(progress_fun)
+
+        dlg = QProgressDialog(self)
+        dlg.setAutoClose(False)
+        dlg.setAutoReset(False)
+
+        dlg.setWindowModality(Qt.WindowModal)
+
+        manager.index()
+
+        manager.indexingFinished.disconnect(finished_fun)
+        manager.indexingLibrary.disconnect(library_fun)
+        manager.indexingProgress.disconnect(progress_fun)

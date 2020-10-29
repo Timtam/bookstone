@@ -28,7 +28,6 @@ class ConfigurationManager:
 
     def init(self) -> None:
 
-        self._add("askBeforeExitWhenIndexing", True)
         self._add(
             "namingSchemes",
             [

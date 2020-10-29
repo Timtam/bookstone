@@ -1,14 +1,11 @@
 from py_singleton import singleton
 
-from threads.thread_pool import ThreadPool
-
 
 @singleton
 class Storage:
 
     _application_context = None
     _library_manager = None
-    _thread_pool: ThreadPool = ThreadPool()
 
     def getApplicationContext(self):
         return self._application_context
@@ -21,6 +18,3 @@ class Storage:
 
     def setLibraryManager(self, manager):
         self._library_manager = manager
-
-    def getThreadPool(self):
-        return self._thread_pool

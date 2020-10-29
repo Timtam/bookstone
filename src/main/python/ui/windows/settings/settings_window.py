@@ -27,9 +27,3 @@ class SettingsWindow(Window):
         self.ok_button = QPushButton("OK", self)
         self.ok_button.pressed.connect(self.close)  # type: ignore
         layout.addWidget(self.ok_button)
-
-    def close(self) -> bool:
-
-        self.closed.emit()
-
-        return super().close()
