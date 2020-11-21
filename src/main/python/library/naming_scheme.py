@@ -1,32 +1,29 @@
 import string
-from typing import Any, Dict, Iterable, Optional, Tuple, cast
+from typing import Any, Dict, Iterable, List, Optional, Tuple, cast
+
+import regex
 
 from .tag import Tag
+from .tag_collection import TagCollection
 from .tags import Tags
 
 
-class NamingScheme:
+class NamingSchemeEntry:
 
-    # not associated with a series
-    _standalone: str
+    # the human-readable pattern
+    # e.g.: {author} - {title}
+    _pattern: str
 
-    # contained within a series of books
-    _volume: str
+    # the compiled regex pattern for the above pattern
+    _regex_pattern: regex.Regex
 
-    # is this naming scheme available by default?
-    _default: bool
+    # the collection of tags
+    _tags: TagCollection = TagCollection()
 
-    name: str
+    def __init__(self, pattern: str) -> None:
 
-    def __init__(
-        self, name: str, standalone: str, volume: str, default: bool = False
-    ) -> None:
-
-        self._default = default
-
-        self.name = name
-        self.standalone = standalone
-        self.volume = volume
+        # populate the patterns, including validity check
+        self.setPattern(pattern)
 
     def checkValid(self, value: str) -> None:
 
@@ -40,27 +37,70 @@ class NamingScheme:
             if isinstance(p[1], str) and p[1] not in Tags:
                 raise AttributeError(f"invalid tag specified: {p[1]}")
 
-    @property
-    def volume(self) -> str:
-        return self._volume
-
-    @volume.setter
-    def volume(self, value: str) -> None:
+    def setPattern(self, value: str) -> None:
 
         self.checkValid(value)
 
-        self._volume = value
+        names: List[str] = [
+            t[1] for t in string.Formatter().parse(value) if isinstance(t[1], str)
+        ]
 
-    @property
-    def standalone(self) -> str:
-        return self._standalone
+        self._regex_pattern = regex.compile(
+            value.format(**{n: self._tags[n].pattern.pattern for n in names})
+        )
 
-    @standalone.setter
-    def standalone(self, value: str) -> None:
+        self._pattern = value
 
-        self.checkValid(value)
+    # returns the human-readable pattern
+    def getPattern(self) -> str:
+        return self._pattern
 
-        self._standalone = value
+    # resolves the human-readable pattern with the given tags
+    def getResolved(self, tags: Iterable[Tag] = Tags) -> str:
+        return self._pattern.format(**{t.name: t.value for t in tags})
+
+    # matches a path with the given human-readable pattern
+    # if the match is valid, returns a TagCollection() with all the tags found
+    def match(self, path: str) -> Optional[TagCollection]:
+
+        match: Optional[regex.Match] = self._regex_pattern.match(path)
+
+        if not match:
+            return None
+
+        tags: TagCollection = TagCollection()
+
+        g: str
+        v: str
+
+        for g, v in match.groupdict():
+            tags[g].value = v
+
+        return tags
+
+
+class NamingScheme:
+
+    # not associated with a series
+    standalone: NamingSchemeEntry
+
+    # contained within a series of books
+    volume: NamingSchemeEntry
+
+    # is this naming scheme available by default?
+    _default: bool
+
+    name: str
+
+    def __init__(
+        self, name: str, standalone: str, volume: str, default: bool = False
+    ) -> None:
+
+        self._default = default
+
+        self.name = name
+        self.standalone = NamingSchemeEntry(standalone)
+        self.volume = NamingSchemeEntry(volume)
 
     @property
     def default(self) -> bool:
@@ -70,15 +110,9 @@ class NamingScheme:
 
         return {
             "name": self.name,
-            "standalone": self._standalone,
-            "volume": self._volume,
+            "standalone": self.standalone.getPattern(),
+            "volume": self.volume.getPattern(),
         }
-
-    def resolveStandalone(self, tags: Iterable[Tag] = Tags) -> str:
-        return self._standalone.format(**{t.name: t.value for t in tags})
-
-    def resolveVolume(self, tags: Iterable[Tag] = Tags) -> str:
-        return self._volume.format(**{t.name: t.value for t in tags})
 
     def __eq__(self, other: Any) -> bool:
 

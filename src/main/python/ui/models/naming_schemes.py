@@ -37,11 +37,11 @@ class NamingSchemesModel(QStandardItemModel):
             item.setEditable(False)
             row.append(item)
 
-            item = QStandardItem(scheme.resolveStandalone())
+            item = QStandardItem(scheme.standalone.getResolved())
             item.setEditable(False)
             row.append(item)
 
-            item = QStandardItem(scheme.resolveVolume())
+            item = QStandardItem(scheme.volume.getResolved())
             item.setEditable(False)
             row.append(item)
 
