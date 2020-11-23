@@ -73,7 +73,7 @@ class NamingSchemeEntry:
         g: str
         v: str
 
-        for g, v in match.groupdict():
+        for g, v in match.groupdict().items():
             tags[g].value = v
 
         return tags
