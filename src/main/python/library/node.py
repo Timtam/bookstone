@@ -163,18 +163,29 @@ class Node:
 
         return None
 
+    # depth = 0: return all children
+    # depth > 0: return only children with a depth level given by depth
+    # files: return files
+    # dirs: return directories
+    # files and dirs allow proper filtering of the iterated children
+
     def iterChildren(
-        self, depth: int = 1, files: bool = True, dirs: bool = True
+        self, depth: int = 0, files: bool = True, dirs: bool = True
     ) -> Iterator["Node"]:
 
         child: Node
 
         for child in self._children:
-            if depth == 1:
+            if depth > 1:
+                yield from child.iterChildren(depth=depth - 1, files=files, dirs=dirs)
+            elif depth == 1:
                 if (dirs and child.isDirectory()) or (files and child.isFile()):
                     yield child
-            else:
-                yield from child.iterChildren(depth=depth - 1, files=files, dirs=dirs)
+            elif depth == 0:
+                if files and child.isFile():
+                    yield child
+                elif child.isDirectory():
+                    yield from child.iterChildren(depth=0, files=files, dirs=dirs)
 
     def __str__(self) -> str:
 
@@ -259,17 +270,6 @@ class Node:
 
     def getBackend(self) -> Optional[Backend]:
         return self._backend
-
-    # generator to iterate over all files below this node
-    def iterFiles(self) -> Iterator["Node"]:
-
-        child: "Node"
-
-        for child in self._children:
-            if child.isFile():
-                yield child
-            else:
-                yield from child.iterFiles()
 
     def getModificationTime(self) -> int:
 
