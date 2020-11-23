@@ -82,12 +82,12 @@ class Node:
     def isRoot(self) -> bool:
         return self._parent is None
 
-    def getPath(self) -> str:
+    def getPath(self) -> pathlib.Path:
 
         if self._parent is None:
-            return self._name
+            return pathlib.Path(self._name)
 
-        return os.path.join(self._parent.getPath(), self._name)
+        return self._parent.getPath() / self._name
 
     def serialize(self) -> Dict[str, Any]:
 
@@ -131,26 +131,26 @@ class Node:
 
     def findChild(self, location: Union["Node", str]) -> Optional["Node"]:
 
-        path: str
+        path: pathlib.Path
 
         if isinstance(location, Node):
             try:
-                path = os.path.relpath(location.getPath(), self.getPath())
+                path = location.getPath().relative_to(self.getPath())
             except ValueError:
-                if self.getPath() == "":
+                if self.getPath() == pathlib.Path(""):
                     path = location.getPath()
                 else:
                     # paths do not overlap -> child is not in that part of the tree
                     return None
         elif isinstance(location, str):
-            path = location
+            path = pathlib.Path(location)
         else:
             raise NotImplementedError()
 
-        if not path:
+        if path == pathlib.Path(""):
             return self
 
-        parts: Tuple[str, ...] = pathlib.Path(path).parts
+        parts: Tuple[str, ...] = path.parts
         child_name: str = parts[0]
         child: "Node"
 
@@ -163,24 +163,27 @@ class Node:
 
         return None
 
-    def findChildren(self, depth: int = 1) -> Iterator["Node"]:
+    def iterChildren(
+        self, depth: int = 1, files: bool = True, dirs: bool = True
+    ) -> Iterator["Node"]:
 
         child: Node
 
         for child in self._children:
             if depth == 1:
-                yield child
+                if (dirs and child.isDirectory()) or (files and child.isFile()):
+                    yield child
             else:
-                yield from child.findChildren(depth=depth - 1)
+                yield from child.iterChildren(depth=depth - 1, files=files, dirs=dirs)
 
     def __str__(self) -> str:
 
         desc: str = "<"
 
         if self.isFile():
-            desc = desc + "File at " + self.getPath()
+            desc = desc + "File at " + self.getPath().as_posix()
         else:
-            desc = desc + "Directory at " + self.getPath()
+            desc = desc + "Directory at " + self.getPath().as_posix()
 
         desc = desc + ">"
 

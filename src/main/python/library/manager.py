@@ -14,7 +14,9 @@ from utils import getSupportedFileExtensions
 
 from .constants import INDEXING, PROGRESS
 from .library import Library
+from .naming_scheme import NamingScheme
 from .node import Node
+from .tag_collection import TagCollection
 
 # keeps track of all libraries
 # it also manages the library indexing process and communicates the progress for the ui to display
@@ -202,7 +204,7 @@ class LibraryManager(QObject):
                     )
                 )
 
-                next_path: str = next.getPath()
+                next_path: str = next.getPath().as_posix()
 
                 dir_list: List[str] = backend.listDirectory(next_path)
 
@@ -260,6 +262,22 @@ class LibraryManager(QObject):
                 next.setIndexed()
 
             tree.clean()
+
+            ns: NamingScheme = cast(NamingScheme, lib.getNamingScheme())
+
+            # process all volumes
+
+            for next in tree.iterChildren(
+                depth=ns.getDepth(ns.volume.getPattern()), files=False
+            ):
+
+                print(next.getPath().as_posix())
+
+                match: Optional[TagCollection] = ns.volume.match(
+                    next.getPath().as_posix()
+                )
+
+                print(match)
 
         self.indexingFinished.emit(True)
 
