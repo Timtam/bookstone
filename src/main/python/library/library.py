@@ -114,7 +114,7 @@ class Library:
 
             scheme_idx: int = cast(List[NamingScheme], ConfigurationManager().namingSchemes).index(scheme_s)  # type: ignore
 
-            self.naming_scheme = cast(
+            self._naming_scheme = cast(
                 List[NamingScheme], ConfigurationManager().namingSchemes
             )[scheme_idx]
 
