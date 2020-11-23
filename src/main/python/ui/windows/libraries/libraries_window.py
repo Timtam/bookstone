@@ -101,7 +101,6 @@ class LibrariesWindow(Window):
         store.getLibraryManager().save(getLibrariesDirectory())
 
         self.libraries_model.reloadLibraries()
-        self.initializeIndexingButton()
 
     def generateShowAddDialogLambda(self, tab: Type[BackendTab]) -> Callable[[], None]:
         return lambda: self.showAddDialog(tab)
@@ -115,7 +114,6 @@ class LibrariesWindow(Window):
 
         self.libraries_list.selectionModel().clearSelection()
         self.libraries_model.reloadLibraries()
-        self.initializeIndexingButton()
 
     def editLibrary(self, lib: Library) -> None:
 
