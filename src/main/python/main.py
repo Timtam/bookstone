@@ -8,7 +8,7 @@ from library.manager import LibraryManager
 from storage import Storage
 from ui import WindowController
 from ui.windows.main import MainWindow
-from utils import getConfigFile, getLibrariesDirectory
+from utils import getConfigFile
 
 if __name__ == "__main__":
     appctxt: ApplicationContext = (
@@ -25,7 +25,7 @@ if __name__ == "__main__":
     store.setLibraryManager(lib_manager)
 
     am: AudioManager = AudioManager()
-    lib_manager.load(getLibrariesDirectory())
+    lib_manager.load()
     am.initialize()
 
     controller: WindowController = WindowController()

@@ -1,14 +1,20 @@
+import json
+import os
 import uuid
 import warnings
-from typing import Any, Dict, List, Optional, Type, cast
+from json.decoder import JSONDecodeError
+from typing import Any, Dict, List, Optional, TextIO, Type, TypeVar, cast
 
 from backend import Backend
 from backends import Backends
 from configuration_manager import ConfigurationManager
+from utils import getLibrariesDirectory
 
 from .book import Book
 from .naming_scheme import NamingScheme
 from .node import Node
+
+T = TypeVar("T", bound="Library")
 
 
 class Library:
@@ -28,6 +34,27 @@ class Library:
         self._name = ""
         self._naming_scheme = None
         self._tree = Node()
+
+    @classmethod
+    def fromFile(cls: Type[T], file: str) -> Optional[T]:
+
+        libfile: TextIO
+        libpath: str = os.path.join(getLibrariesDirectory(), file)
+
+        with open(libpath, "r") as libfile:
+
+            data: str = libfile.read()
+
+            try:
+                ser: Dict[str, Any] = json.loads(data)
+            except JSONDecodeError:
+                warnings.warn(f"invalid json data found in {libpath}")
+                return None
+
+        l: T = cls()
+        l.deserialize(ser)
+
+        return l
 
     def getBackend(self) -> Optional[Backend]:
         return self._backend
@@ -145,3 +172,21 @@ class Library:
 
     def setNamingScheme(self, scheme: NamingScheme) -> None:
         self._naming_scheme = scheme
+
+    def save(self) -> None:
+
+        libfile: TextIO
+
+        if not os.path.exists(getLibrariesDirectory()):
+            os.makedirs(getLibrariesDirectory())
+
+        libpath: str = self.getFileName()
+
+        ser: Dict[str, Any] = self.serialize()
+        data: str = json.dumps(ser, indent=2)
+
+        with open(libpath, "w") as libfile:
+            libfile.write(data)
+
+    def getFileName(self) -> str:
+        return os.path.join(getLibrariesDirectory(), self.getUUID() + ".json")

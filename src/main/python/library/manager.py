@@ -1,16 +1,13 @@
-import hashlib
-import json
 import os
 import os.path
 import queue
-from json.decoder import JSONDecodeError
-from typing import Any, Dict, List, Optional, TextIO, cast
+from typing import List, Optional, cast
 
 import natsort
 from PyQt5.QtCore import QObject, pyqtSignal
 
 from backend import Backend
-from utils import getSupportedFileExtensions
+from utils import getLibrariesDirectory, getSupportedFileExtensions
 
 from .constants import INDEXING, PROGRESS
 from .library import Library
@@ -44,7 +41,6 @@ class LibraryManager(QObject):
     _cancel_indexing: bool
     _indexing: bool
     _libraries: List[Library]
-    _library_hashes: List[bytes]
 
     def __init__(self) -> None:
 
@@ -53,14 +49,12 @@ class LibraryManager(QObject):
         self._cancel_indexing = False
         self._indexing = False
         self._libraries = []
-        self._library_hashes = []
 
         self.indexingStarted.connect(lambda: self._set_indexing(True))
         self.indexingFinished.connect(lambda: self._set_indexing(False))
 
     def addLibrary(self, lib: Library) -> None:
         self._libraries.append(lib)
-        self._library_hashes.append(b"")
 
     def getLibraries(self) -> List[Library]:
 
@@ -70,93 +64,26 @@ class LibraryManager(QObject):
 
         i: int = self._libraries.index(lib)
 
+        if os.path.exists(lib.getFileName()):
+            os.remove(lib.getFileName())
+
         del self._libraries[i]
-        del self._library_hashes[i]
 
-    def load(self, directory: str) -> None:
+    def load(self) -> None:
 
-        if not os.path.exists(directory) or not os.path.isdir(directory):
+        if not os.path.exists(getLibrariesDirectory()) or not os.path.isdir(
+            getLibrariesDirectory()
+        ):
             return
 
-        libraries: List[str] = os.listdir(directory)
-        lib: str
-        libfile: TextIO
+        libraries: List[str] = os.listdir(getLibrariesDirectory())
 
         for lib in libraries:
 
-            libpath: str = os.path.join(directory, lib)
+            l: Optional[Library] = Library.fromFile(lib)
 
-            with open(libpath, "r") as libfile:
-
-                data: str = libfile.read()
-
-                try:
-                    ser: Dict[str, Any] = json.loads(data)
-                except JSONDecodeError:
-                    continue
-
-                l: Library = Library()
-                l.deserialize(ser)
+            if l:
                 self._libraries.append(l)
-
-                hash = hashlib.sha256()
-                hash.update(data.encode("utf-8"))
-                self._library_hashes.append(hash.digest())
-
-    def save(self, directory: str) -> None:
-
-        file: str
-        libfile: TextIO
-
-        if not os.path.exists(directory):
-            os.makedirs(directory)
-
-        # which files do already exist?
-
-        libfiles: List[str] = []
-
-        try:
-            libfiles = os.listdir(directory)
-        except FileNotFoundError:
-            pass
-
-        i: int
-        lib: Library
-
-        for i, lib in enumerate(self._libraries):
-
-            libpath: str = os.path.join(directory, lib.getUUID() + ".json")
-
-            ser: Dict[str, Any] = lib.serialize()
-            data: str = json.dumps(ser, indent=2)
-
-            # make sure we don't save if a file with the same content already exists
-            if os.path.exists(libpath):
-
-                hash = hashlib.sha256()
-                hash.update(data.encode("utf-8"))
-
-                if self._library_hashes[i] == hash.digest():
-
-                    try:
-                        libfiles.remove(lib.getUUID() + ".json")
-                    except ValueError:
-                        pass
-
-                    continue
-
-            with open(libpath, "w") as libfile:
-
-                libfile.write(data)
-
-            try:
-                libfiles.remove(lib.getUUID() + ".json")
-            except ValueError:
-                pass
-
-        # all remaining files in libfiles are no longer available / got removed
-        for file in libfiles:
-            os.remove(os.path.join(directory, file))
 
     def index(self) -> None:
 

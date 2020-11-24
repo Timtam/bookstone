@@ -19,7 +19,6 @@ from library.manager import LibraryManager
 from storage import Storage
 from ui import Window
 from ui.models.libraries import LibrariesModel
-from utils import getLibrariesDirectory
 
 from .backend_tab import BackendTab
 from .backend_tabs import BackendTabs
@@ -96,9 +95,9 @@ class LibrariesWindow(Window):
         if not success:
             return
 
+        library.save()
         store: Storage = Storage()
         store.getLibraryManager().addLibrary(library)
-        store.getLibraryManager().save(getLibrariesDirectory())
 
         self.libraries_model.reloadLibraries()
 
@@ -110,7 +109,6 @@ class LibrariesWindow(Window):
         manager: LibraryManager = Storage().getLibraryManager()
 
         manager.removeLibrary(lib)
-        manager.save(getLibrariesDirectory())
 
         self.libraries_list.selectionModel().clearSelection()
         self.libraries_model.reloadLibraries()
@@ -126,7 +124,7 @@ class LibrariesWindow(Window):
         if not success:
             return
 
-        Storage().getLibraryManager().save(getLibrariesDirectory())
+        lib.save()
         self.libraries_model.updateLibrary(lib)
 
     def eventFilter(self, source: QObject, event: QEvent) -> bool:
