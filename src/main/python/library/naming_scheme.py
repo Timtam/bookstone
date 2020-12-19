@@ -1,7 +1,6 @@
+import re
 import string
 from typing import Any, Dict, Iterable, List, Optional, Tuple, cast
-
-import regex
 
 from .tag import Tag
 from .tag_collection import TagCollection
@@ -15,10 +14,7 @@ class NamingSchemeEntry:
     _pattern: str
 
     # the compiled regex pattern for the above pattern
-    _regex_pattern: regex.Regex
-
-    # the collection of tags
-    _tags: TagCollection = TagCollection()
+    _regex_pattern: re.Pattern
 
     def __init__(self, pattern: str) -> None:
 
@@ -33,7 +29,6 @@ class NamingSchemeEntry:
         p: Tuple[str, Optional[str], Optional[str], Optional[str]]
 
         for p in placeholders:
-
             if isinstance(p[1], str) and p[1] not in Tags:
                 raise AttributeError(f"invalid tag specified: {p[1]}")
 
@@ -45,8 +40,15 @@ class NamingSchemeEntry:
             t[1] for t in string.Formatter().parse(value) if isinstance(t[1], str)
         ]
 
-        self._regex_pattern = regex.compile(
-            value.format(**{n: self._tags[n].pattern.pattern for n in names})
+        self._regex_pattern = re.compile(
+            value.format(
+                **{
+                    n: f"(?P<{n}>.*?)"
+                    if names.index(n) < len(names) - 1
+                    else f"(?P<{n}>.*)"
+                    for n in names
+                }
+            )
         )
 
         self._pattern = value
@@ -63,7 +65,7 @@ class NamingSchemeEntry:
     # if the match is valid, returns a TagCollection() with all the tags found
     def match(self, path: str) -> Optional[TagCollection]:
 
-        match: Optional[regex.Match] = self._regex_pattern.match(path)
+        match: Optional[re.Match] = self._regex_pattern.match(path)
 
         if not match:
             return None

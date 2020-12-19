@@ -168,16 +168,30 @@ class Node:
     # files: return files
     # dirs: return directories
     # files and dirs allow proper filtering of the iterated children
+    # indexed: return only indexed children
 
     def iterChildren(
-        self, depth: int = 0, files: bool = True, dirs: bool = True
+        self,
+        depth: int = 0,
+        files: bool = True,
+        dirs: bool = True,
+        indexed: bool = False,
     ) -> Iterator["Node"]:
 
         child: Node
 
+        if indexed and not self.isIndexed(recursive=True):
+            return
+
         for child in self._children:
+
+            if indexed and not child.isIndexed(recursive=True):
+                continue
+
             if depth > 1:
-                yield from child.iterChildren(depth=depth - 1, files=files, dirs=dirs)
+                yield from child.iterChildren(
+                    depth=depth - 1, files=files, dirs=dirs, indexed=indexed
+                )
             elif depth == 1:
                 if (dirs and child.isDirectory()) or (files and child.isFile()):
                     yield child
@@ -185,7 +199,9 @@ class Node:
                 if files and child.isFile():
                     yield child
                 elif child.isDirectory():
-                    yield from child.iterChildren(depth=0, files=files, dirs=dirs)
+                    yield from child.iterChildren(
+                        depth=0, files=files, dirs=dirs, indexed=indexed
+                    )
 
     def __str__(self) -> str:
 
@@ -244,20 +260,47 @@ class Node:
                 if len(child.getChildren()) == 0:
                     self.removeChild(child)
 
-    def isIndexed(self) -> bool:
-        return self._indexed
+    # if recursive: return False as soon as all children are not indexed
+    # means: return True as soon as at least one child is indexed
+    # will return False for empty directories as well
 
-    def setIndexed(self) -> None:
+    def isIndexed(self, recursive: bool = False) -> bool:
+
+        if self.isDirectory() and len(self._children) == 0:
+            return False
+
+        if not recursive or len(self._children) == 0:
+            return self._indexed
+
+        child: "Node"
+
+        for child in self._children:
+            if child.isIndexed(recursive=True):
+                return True
+
+        return False
+
+    def setIndexed(self, recursive: bool = False) -> None:
+
+        child: "Node"
+
         self._indexed = True
 
-    def setNotIndexed(self) -> None:
+        if recursive:
+
+            for child in self._children:
+                child.setIndexed(recursive)
+
+    def setNotIndexed(self, recursive: bool = False) -> None:
 
         child: "Node"
 
         self._indexed = False
 
-        for child in self._children:
-            child.setNotIndexed()
+        if recursive:
+
+            for child in self._children:
+                child.setNotIndexed(recursive)
 
     def setBackend(self, backend: Backend) -> None:
 

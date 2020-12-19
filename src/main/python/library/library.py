@@ -190,3 +190,6 @@ class Library:
 
     def getFileName(self) -> str:
         return os.path.join(getLibrariesDirectory(), self.getUUID() + ".json")
+
+    def addBook(self, book: Book) -> None:
+        self._books.append(book)

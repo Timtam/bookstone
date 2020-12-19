@@ -10,7 +10,6 @@ natsort = "*"
 pyqt5 = "*"
 smbprotocol = "*"
 py-singleton = "*"
-regex = "*"
 
 [dev-packages]
 mypy = "*"

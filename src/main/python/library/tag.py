@@ -1,22 +1,18 @@
 import copy
 from typing import Any, cast
 
-import regex
-
 
 class Tag:
 
     value: str
     _name: str
     _default: str
-    _pattern: regex.Regex
 
-    def __init__(self, name: str, value: str = "", pattern: str = "") -> None:
+    def __init__(self, name: str, value: str = "") -> None:
 
         self._name = name
         self.value = value
         self._default = value
-        self._pattern = regex.compile(f"(?P<{self._name}>{pattern})")
 
     def isModified(self) -> bool:
         return self.value != self._default
@@ -34,10 +30,6 @@ class Tag:
     @property
     def default(self) -> str:
         return self._default
-
-    @property
-    def pattern(self) -> regex.Regex:
-        return self._pattern
 
     def __str__(self) -> str:
         return "Tag[{name}] = {value}".format(name=self._name, value=self.value)

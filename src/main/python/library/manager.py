@@ -9,6 +9,7 @@ from PyQt5.QtCore import QObject, pyqtSignal
 from backend import Backend
 from utils import getLibrariesDirectory, getSupportedFileExtensions
 
+from .book import Book
 from .constants import INDEXING, PROGRESS
 from .library import Library
 from .naming_scheme import NamingScheme
@@ -99,7 +100,7 @@ class LibraryManager(QObject):
             self.indexingLibrary.emit(lib.getName())
 
             tree: Node = cast(Node, lib.getTree())
-            tree.setNotIndexed()
+            tree.setNotIndexed(recursive=True)
 
             backend: Backend = cast(Backend, lib.getBackend())
 
@@ -190,21 +191,41 @@ class LibraryManager(QObject):
 
             tree.clean()
 
+            book: Book
+            match: Optional[TagCollection]
             ns: NamingScheme = cast(NamingScheme, lib.getNamingScheme())
 
             # process all volumes
 
             for next in tree.iterChildren(
-                depth=ns.getDepth(ns.volume.getPattern()), files=False
+                depth=ns.getDepth(ns.volume.getPattern()), files=False, indexed=True
             ):
 
-                print(next.getPath().as_posix())
+                match = ns.volume.match(next.getPath().as_posix())
 
-                match: Optional[TagCollection] = ns.volume.match(
-                    next.getPath().as_posix()
-                )
+                if match:
+                    book = Book(next.getPath(), match)
 
-                print(match)
+                    lib.addBook(book)
+                    next.setNotIndexed(recursive=True)
+
+            # process all standalones
+
+            for next in tree.iterChildren(
+                depth=ns.getDepth(ns.standalone.getPattern()), files=False, indexed=True
+            ):
+
+                match = ns.standalone.match(next.getPath().as_posix())
+
+                if match:
+                    book = Book(next.getPath(), match)
+
+                    lib.addBook(book)
+                    next.setNotIndexed(recursive=True)
+
+            tree.setIndexed(recursive=True)
+
+            lib.save()
 
         self.indexingFinished.emit(True)
 
