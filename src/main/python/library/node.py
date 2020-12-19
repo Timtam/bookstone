@@ -11,7 +11,7 @@ NODE_FILE = 1
 class Node:
 
     _backend: Optional[Backend]
-    _children: List["Node"]
+    _children: Dict[str, "Node"]
     _indexed: bool
     _modification_time: int
     _name: str
@@ -24,7 +24,7 @@ class Node:
         self._backend = None
         self._name = name
         self._type = NODE_DIRECTORY
-        self._children = []
+        self._children = {}
         self._parent = parent
         self._size = -1
         self._modification_time = -1
@@ -49,7 +49,7 @@ class Node:
         return self._type == NODE_FILE
 
     def getChildren(self) -> List["Node"]:
-        return self._children[:]
+        return list(self._children.values())
 
     def addChild(self, child: "Node") -> None:
 
@@ -62,7 +62,7 @@ class Node:
 
         child.setParent(self)
         child.setBackend(cast(Backend, self._backend))
-        self._children.append(child)
+        self._children[child.getName()] = child
 
     def getParent(self) -> Optional["Node"]:
         return self._parent
@@ -102,7 +102,7 @@ class Node:
             ser["size"] = self._size
             ser["mtime"] = self._modification_time
 
-        for child in self._children:
+        for child in self._children.values():
             ser["children"].append(child.serialize())
 
         return ser
@@ -127,7 +127,7 @@ class Node:
             node.deserialize(child)
             node.setParent(self)
             node.setBackend(cast(Backend, self._backend))
-            self._children.append(node)
+            self._children[node.getName()] = node
 
     def findChild(self, location: Union["Node", str]) -> Optional["Node"]:
 
@@ -152,14 +152,14 @@ class Node:
 
         parts: Tuple[str, ...] = path.parts
         child_name: str = parts[0]
-        child: "Node"
 
-        for child in self._children:
-            if child._name == child_name:
-                if len(parts) == 1:
-                    return child
-                else:
-                    return child.findChild(os.path.join(*parts[1:]))
+        child: Optional["Node"] = self._children.get(child_name, None)
+
+        if child:
+            if len(parts) == 1:
+                return child
+            else:
+                return child.findChild(os.path.join(*parts[1:]))
 
         return None
 
@@ -183,7 +183,7 @@ class Node:
         if indexed and not self.isIndexed(recursive=True):
             return
 
-        for child in self._children:
+        for child in self._children.values():
 
             if indexed and not child.isIndexed(recursive=True):
                 continue
@@ -221,10 +221,10 @@ class Node:
 
     def removeChild(self, child: "Node") -> None:
 
-        if child not in self._children:
+        if child.getName() not in self._children:
             return
 
-        self._children.remove(child)
+        del self._children[child.getName()]
 
         child.setParent(None)
 
@@ -234,7 +234,7 @@ class Node:
 
         child: "Node"
 
-        for child in self._children:
+        for child in self._children.values():
             child.setParent(None)
             child.removeAllChildren()
 
@@ -244,7 +244,7 @@ class Node:
 
         child: "Node"
 
-        for child in self._children[:]:
+        for child in self._children.values():
 
             if not child.isIndexed():
                 # the element is flagged as 'not indexed', thus it can be dropped
@@ -274,7 +274,7 @@ class Node:
 
         child: "Node"
 
-        for child in self._children:
+        for child in self._children.values():
             if child.isIndexed(recursive=True):
                 return True
 
@@ -288,7 +288,7 @@ class Node:
 
         if recursive:
 
-            for child in self._children:
+            for child in self._children.values():
                 child.setIndexed(recursive)
 
     def setNotIndexed(self, recursive: bool = False) -> None:
@@ -299,7 +299,7 @@ class Node:
 
         if recursive:
 
-            for child in self._children:
+            for child in self._children.values():
                 child.setNotIndexed(recursive)
 
     def setBackend(self, backend: Backend) -> None:
@@ -308,7 +308,7 @@ class Node:
 
         self._backend = backend
 
-        for child in self._children:
+        for child in self._children.values():
             child.setBackend(backend)
 
     def getBackend(self) -> Optional[Backend]:
