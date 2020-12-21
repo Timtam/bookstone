@@ -32,11 +32,8 @@ class MainWindow(Window):
         self.file_menu.addAction(act)
 
         act = QAction("&Exit", self.file_menu)
-        act.triggered.connect(self.exit)
+        act.triggered.connect(self.close)  # type: ignore
         self.file_menu.addAction(act)
-
-    def exit(self) -> None:
-        self.closed.emit()
 
     def showLibrariesWindow(self) -> None:
 
