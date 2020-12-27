@@ -99,30 +99,66 @@ class LibraryManager(QObject):
 
             self.indexingLibrary.emit(lib.getName())
 
-            tree: Node = cast(Node, lib.getTree())
-            tree.setNotIndexed(recursive=True)
+            self._index_folder_structure(lib)
 
-            backend: Backend = cast(Backend, lib.getBackend())
+            self._index_books(lib)
 
-            open: queue.Queue[Node] = queue.Queue()
+            lib.save()
 
-            open.put(tree)
+        self.indexingFinished.emit(True)
 
-            while not open.empty():
+    def _index_folder_structure(self, lib: Library) -> None:
+
+        tree: Node = cast(Node, lib.getTree())
+        tree.setNotIndexed(recursive=True)
+
+        backend: Backend = cast(Backend, lib.getBackend())
+
+        open: queue.Queue[Node] = queue.Queue()
+
+        open.put(tree)
+
+        while not open.empty():
+
+            if self._cancel_indexing:
+                self.indexingFinished.emit(False)
+                return
+
+            next: Node = open.get()
+
+            self.indexingProgress.emit(
+                (
+                    INDEXING.READING,
+                    PROGRESS.UPDATE_MAXIMUM,
+                    1,
+                )
+            )
+
+            self.indexingProgress.emit(
+                (
+                    INDEXING.READING,
+                    PROGRESS.VALUE,
+                    1,
+                )
+            )
+
+            next_path: str = next.getPath().as_posix()
+
+            dir_list: List[str] = backend.listDirectory(next_path)
+
+            self.indexingProgress.emit(
+                (
+                    INDEXING.READING,
+                    PROGRESS.UPDATE_MAXIMUM,
+                    len(dir_list),
+                )
+            )
+
+            for dir in dir_list:
 
                 if self._cancel_indexing:
                     self.indexingFinished.emit(False)
                     return
-
-                next: Node = open.get()
-
-                self.indexingProgress.emit(
-                    (
-                        INDEXING.READING,
-                        PROGRESS.UPDATE_MAXIMUM,
-                        1,
-                    )
-                )
 
                 self.indexingProgress.emit(
                     (
@@ -132,105 +168,85 @@ class LibraryManager(QObject):
                     )
                 )
 
-                next_path: str = next.getPath().as_posix()
+                new: Optional[Node] = tree.findChild(os.path.join(next_path, dir))
 
-                dir_list: List[str] = backend.listDirectory(next_path)
+                if new is None:
+                    new = Node()
+                    new.setName(dir)
 
-                self.indexingProgress.emit(
-                    (
-                        INDEXING.READING,
-                        PROGRESS.UPDATE_MAXIMUM,
-                        len(dir_list),
-                    )
-                )
+                if backend.isDirectory(os.path.join(next_path, dir)):
+                    new.setDirectory()
+                else:
+                    new.setFile()
 
-                for dir in dir_list:
+                if new.isFile():
 
-                    if self._cancel_indexing:
-                        self.indexingFinished.emit(False)
-                        return
+                    # check file extensions
+                    _, ext = os.path.splitext(new.getName())
 
-                    self.indexingProgress.emit(
-                        (
-                            INDEXING.READING,
-                            PROGRESS.VALUE,
-                            1,
-                        )
-                    )
-
-                    new: Optional[Node] = tree.findChild(os.path.join(next_path, dir))
-
-                    if new is None:
-                        new = Node()
-                        new.setName(dir)
-
-                    if backend.isDirectory(os.path.join(next_path, dir)):
-                        new.setDirectory()
+                    if not ext.lower() in getSupportedFileExtensions():
+                        if new.getParent() is not None:
+                            next.removeChild(new)
+                        continue
                     else:
-                        new.setFile()
+                        new.setIndexed()
 
-                    if new.isFile():
+                if next.findChild(new) is None:
+                    next.addChild(new)
 
-                        # check file extensions
-                        _, ext = os.path.splitext(new.getName())
+                if new.isDirectory():
+                    open.put(new)
 
-                        if not ext.lower() in getSupportedFileExtensions():
-                            if new.getParent() is not None:
-                                next.removeChild(new)
-                            continue
-                        else:
-                            new.setIndexed()
+            next.setIndexed()
 
-                    if next.findChild(new) is None:
-                        next.addChild(new)
-
-                    if new.isDirectory():
-                        open.put(new)
-
-                next.setIndexed()
-
-            tree.clean()
-
-            book: Book
-            match: Optional[TagCollection]
-            ns: NamingScheme = cast(NamingScheme, lib.getNamingScheme())
-
-            # process all volumes
-
-            for next in tree.iterChildren(
-                depth=ns.getDepth(ns.volume.getPattern()), files=False, indexed=True
-            ):
-
-                match = ns.volume.match(next.getPath().as_posix())
-
-                if match:
-                    book = Book(next.getPath(), match)
-
-                    lib.addBook(book)
-                    next.setNotIndexed(recursive=True)
-
-            # process all standalones
-
-            for next in tree.iterChildren(
-                depth=ns.getDepth(ns.standalone.getPattern()), files=False, indexed=True
-            ):
-
-                match = ns.standalone.match(next.getPath().as_posix())
-
-                if match:
-                    book = Book(next.getPath(), match)
-
-                    lib.addBook(book)
-                    next.setNotIndexed(recursive=True)
-
-            tree.setIndexed(recursive=True)
-
-            lib.save()
-
-        self.indexingFinished.emit(True)
+        tree.clean()
 
     def _set_indexing(self, indexing: bool) -> None:
         self._indexing = indexing
+
+    def _index_books(self, lib: Library) -> None:
+
+        books: List[Book] = []
+        book: Book
+        match: Optional[TagCollection]
+        next: Node
+        ns: NamingScheme = cast(NamingScheme, lib.getNamingScheme())
+        tree: Node = cast(Node, lib.getTree())
+
+        # process all volumes
+
+        for next in tree.iterChildren(
+            depth=ns.getDepth(ns.volume.getPattern()), files=False, indexed=True
+        ):
+
+            match = ns.volume.match(next.getPath().as_posix())
+
+            if match:
+                book = Book(next.getPath(), match)
+
+                books.append(book)
+                next.setNotIndexed(recursive=True)
+
+        # process all standalones
+
+        for next in tree.iterChildren(
+            depth=ns.getDepth(ns.standalone.getPattern()), files=False, indexed=True
+        ):
+
+            match = ns.standalone.match(next.getPath().as_posix())
+
+            if match:
+                book = Book(next.getPath(), match)
+
+                books.append(book)
+                next.setNotIndexed(recursive=True)
+
+        tree.setIndexed(recursive=True)
+
+        for book in books:
+
+            if not lib.findBook(book):
+                lib.addBook(book)
 
     def cancelIndexing(self) -> None:
 

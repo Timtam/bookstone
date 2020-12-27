@@ -1,5 +1,5 @@
 import pathlib
-from typing import Any, Dict, Optional, Union
+from typing import Any, Dict, Optional, Union, cast
 
 from .tag_collection import TagCollection
 
@@ -18,7 +18,7 @@ class Book:
         else:
             self._tags = TagCollection()
 
-        self.setPath(path)
+        self.path = path  # type: ignore
 
     def serialize(self) -> Dict[str, Any]:
 
@@ -35,10 +35,12 @@ class Book:
 
         self._tags.deserialize(tags)
 
-    def getPath(self) -> pathlib.Path:
+    @property
+    def path(self) -> pathlib.Path:
         return self._path
 
-    def setPath(self, path: Union[pathlib.Path, str]) -> None:
+    @path.setter
+    def path(self, path: Union[pathlib.Path, str]) -> None:
 
         if isinstance(path, str):
             self._path = pathlib.Path(path)
@@ -48,3 +50,15 @@ class Book:
     @property
     def tags(self) -> TagCollection:
         return self._tags
+
+    def __eq__(self, book: Any) -> bool:
+
+        if isinstance(book, Book):
+            return (
+                self._path == cast(Book, book)._path
+                and self._tags == cast(Book, book)._tags
+            )
+        elif isinstance(book, str):
+            return self._path == book
+
+        return NotImplemented

@@ -1,9 +1,10 @@
 import json
 import os
+import pathlib
 import uuid
 import warnings
 from json.decoder import JSONDecodeError
-from typing import Any, Dict, List, Optional, TextIO, Type, TypeVar, cast
+from typing import Any, Dict, List, Optional, TextIO, Type, TypeVar, Union, cast
 
 from backend import Backend
 from backends import Backends
@@ -20,7 +21,7 @@ T = TypeVar("T", bound="Library")
 class Library:
 
     _backend: Optional[Backend]
-    _books: List[Book]
+    _books: Dict[str, Book]
     _name: str
     _naming_scheme: Optional[NamingScheme]
     _tree: Node
@@ -29,7 +30,7 @@ class Library:
     def __init__(self) -> None:
 
         self._backend = None
-        self._books = []
+        self._books = {}
         self._uuid = str(uuid.uuid4())
         self._name = ""
         self._naming_scheme = None
@@ -76,7 +77,7 @@ class Library:
             "backend": cast(Backend, self._backend).serialize(),
             "uuid": self._uuid,
             "tree": cast(Node, self._tree).serialize(),
-            "books": [b.serialize() for b in self._books],
+            "books": [b.serialize() for b in self._books.values()],
             "naming_scheme": cast(NamingScheme, self._naming_scheme).name,
         }
 
@@ -123,7 +124,7 @@ class Library:
             book_obj: Book = Book()
             book_obj.deserialize(book)
 
-            self._books.append(book_obj)
+            self._books[book_obj.path.as_posix()] = book_obj
 
         scheme_s: str = serialized.get("naming_scheme", "")
 
@@ -165,7 +166,7 @@ class Library:
         return self._tree
 
     def getBooks(self) -> List[Book]:
-        return self._books[:]
+        return list(self._books.values())
 
     def getNamingScheme(self) -> Optional[NamingScheme]:
         return self._naming_scheme
@@ -192,4 +193,15 @@ class Library:
         return os.path.join(getLibrariesDirectory(), self.getUUID() + ".json")
 
     def addBook(self, book: Book) -> None:
-        self._books.append(book)
+        self._books[book.path.as_posix()] = book
+
+    def findBook(self, book: Union[Book, str, pathlib.Path]) -> Optional[Book]:
+
+        if isinstance(book, Book):
+            return self._books.get(cast(Book, book).path.as_posix(), None)
+        elif isinstance(book, str):
+            return self._books.get(cast(str, book), None)
+        elif isinstance(book, pathlib.Path):
+            return self._books.get(cast(pathlib.Path, book).as_posix(), None)
+
+        return None

@@ -1,5 +1,5 @@
 from collections import UserDict
-from typing import Any, Dict
+from typing import Any, Dict, cast
 
 from .tag import Tag
 from .tags import Tags
@@ -46,3 +46,19 @@ class TagCollection(UserDict):
                 tag.value = value
             except IndexError:
                 pass
+
+    def __eq__(self, tags: Any) -> bool:
+
+        if isinstance(tags, TagCollection):
+
+            name: str
+            tag: Tag
+
+            for name, tag in cast(TagCollection, tags).items():
+
+                if self.get(name, None) != tag:
+                    return False
+
+            return True
+
+        return NotImplemented
