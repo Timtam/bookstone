@@ -244,7 +244,7 @@ class Node:
 
         child: "Node"
 
-        for child in self._children.values():
+        for child in self._children.copy().values():
 
             if not child.isIndexed():
                 # the element is flagged as 'not indexed', thus it can be dropped

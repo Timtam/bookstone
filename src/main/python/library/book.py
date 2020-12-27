@@ -62,3 +62,9 @@ class Book:
             return self._path == book
 
         return NotImplemented
+
+    def __str__(self) -> str:
+        return f"<Book tags={str(self.tags)}, path={self.path.as_posix()}>"
+
+    def __repr__(self) -> str:
+        return str(self)

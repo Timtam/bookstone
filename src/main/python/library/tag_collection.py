@@ -62,3 +62,9 @@ class TagCollection(UserDict):
             return True
 
         return NotImplemented
+
+    def __str__(self) -> str:
+        return "{" + ", ".join([k + ": " + v.value for k, v in self.items()]) + "}"
+
+    def __repr__(self) -> str:
+        return str(self)

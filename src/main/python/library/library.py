@@ -205,3 +205,6 @@ class Library:
             return self._books.get(cast(pathlib.Path, book).as_posix(), None)
 
         return None
+
+    def removeBook(self, book: Book) -> None:
+        del self._books[book.path.as_posix()]
