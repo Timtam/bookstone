@@ -1,8 +1,11 @@
-from typing import Any
+from typing import Any, cast
 
-from PyQt5.QtWidgets import QAction, QMenu, QMenuBar
+from PyQt5.QtWidgets import QAction, QLabel, QMenu, QMenuBar, QTreeView, QVBoxLayout
 
+from library.manager import LibraryManager
+from storage import Storage
 from ui import Window, WindowController
+from ui.models.libraries_books import LibrariesBooksModel
 from ui.windows.libraries import LibrariesWindow
 from ui.windows.settings import SettingsWindow
 
@@ -10,6 +13,8 @@ from ui.windows.settings import SettingsWindow
 class MainWindow(Window):
 
     file_menu: QMenu
+    libraries_model: LibrariesBooksModel
+    libraries_view: QTreeView
     menu_bar: QMenuBar
 
     def __init__(self, *args: Any, **kwargs: Any):
@@ -34,6 +39,20 @@ class MainWindow(Window):
         act = QAction("&Exit", self.file_menu)
         act.triggered.connect(self.close)  # type: ignore
         self.file_menu.addAction(act)
+
+        layout: QVBoxLayout = QVBoxLayout(self)
+
+        libraries_view_label = QLabel("Books", self)
+        layout.addWidget(libraries_view_label)
+        self.libraries_model = LibrariesBooksModel(self)
+
+        for lib in cast(LibraryManager, Storage().getLibraryManager()).getLibraries():
+            self.libraries_model.addLibrary(lib)
+
+        self.libraries_view = QTreeView(self)
+        layout.addWidget(self.libraries_view)
+        self.libraries_view.setModel(self.libraries_model)
+        libraries_view_label.setBuddy(self.libraries_view)
 
     def showLibrariesWindow(self) -> None:
 
