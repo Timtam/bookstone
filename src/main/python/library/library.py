@@ -146,7 +146,8 @@ class Library:
                 List[NamingScheme], ConfigurationManager().namingSchemes
             )[scheme_idx]
 
-    def getUUID(self) -> str:
+    @property
+    def uuid(self) -> str:
         return self._uuid
 
     def __eq__(self, lib: Any) -> bool:
@@ -190,7 +191,7 @@ class Library:
             libfile.write(data)
 
     def getFileName(self) -> str:
-        return os.path.join(getLibrariesDirectory(), self.getUUID() + ".json")
+        return os.path.join(getLibrariesDirectory(), self.uuid + ".json")
 
     def addBook(self, book: Book) -> None:
         self._books[book.path.as_posix()] = book

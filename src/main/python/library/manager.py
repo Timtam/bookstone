@@ -58,8 +58,10 @@ class LibraryManager(QObject):
         self._libraries.append(lib)
 
     def getLibraries(self) -> List[Library]:
+        def key(lib: Library):
+            return lib.uuid
 
-        return natsort.natsorted(self._libraries[:], key=lambda l: l.getUUID())
+        return natsort.natsorted(self._libraries[:], key=key)
 
     def removeLibrary(self, lib: Library) -> None:
 
