@@ -1,5 +1,5 @@
 from enum import IntFlag, auto
-from typing import Any, List, Optional, Tuple, Union, cast
+from typing import Any, Iterable, List, Optional, Tuple, Union, cast
 
 from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt
 
@@ -127,6 +127,24 @@ class LibrariesBooksTreeItem:
             ]
         )
 
+    def __eq__(self, other: Any) -> bool:
+
+        if (
+            isinstance(other, Library)
+            and self._type == LibrariesBooksTreeItemType.library
+        ):
+            return cast(Library, self._data).uuid == cast(Library, other).uuid
+        elif isinstance(other, Book) and self._type == LibrariesBooksTreeItemType.book:
+            return cast(Book, self._data).uuid == cast(Book, other).uuid
+        elif isinstance(other, LibrariesBooksTreeItem):
+            return (
+                self._type == LibrariesBooksTreeItemType.root
+                and cast(LibrariesBooksTreeItem, other)._type
+                == LibrariesBooksTreeItemType.root
+            ) or self == cast(LibrariesBooksTreeItem, other)._data
+
+        return NotImplemented
+
 
 class LibrariesBooksModel(QAbstractItemModel):
 
@@ -137,20 +155,25 @@ class LibrariesBooksModel(QAbstractItemModel):
 
         self._root = LibrariesBooksTreeItem(type=LibrariesBooksTreeItemType.root)
 
-    def addLibrary(self, lib: Library) -> None:
+    def update(self, libs: Iterable[Library]) -> None:
 
         book: Book
-        lib_item = LibrariesBooksTreeItem(
-            type=LibrariesBooksTreeItemType.library, parent=self._root, data=lib
-        )
+        lib: Library
+        lib_item: LibrariesBooksTreeItem
 
-        self._root.insertChild(lib_item)
+        for lib in libs:
 
-        for book in lib.getBooks():
-            book_item: LibrariesBooksTreeItem = LibrariesBooksTreeItem(
-                type=LibrariesBooksTreeItemType.book, parent=lib_item, data=book
+            lib_item = LibrariesBooksTreeItem(
+                type=LibrariesBooksTreeItemType.library, parent=self._root, data=lib
             )
-            lib_item.insertChild(book_item)
+
+            self._root.insertChild(lib_item)
+
+            for book in lib.getBooks():
+                book_item: LibrariesBooksTreeItem = LibrariesBooksTreeItem(
+                    type=LibrariesBooksTreeItemType.book, parent=lib_item, data=book
+                )
+                lib_item.insertChild(book_item)
 
     def getItem(self, index: QModelIndex) -> LibrariesBooksTreeItem:
 

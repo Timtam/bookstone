@@ -46,17 +46,25 @@ class MainWindow(Window):
         layout.addWidget(libraries_view_label)
         self.libraries_model = LibrariesBooksModel(self)
 
-        for lib in cast(LibraryManager, Storage().getLibraryManager()).getLibraries():
-            self.libraries_model.addLibrary(lib)
-
         self.libraries_view = QTreeView(self)
         layout.addWidget(self.libraries_view)
         self.libraries_view.setModel(self.libraries_model)
         libraries_view_label.setBuddy(self.libraries_view)
 
-    def showLibrariesWindow(self) -> None:
+        self.libraries_model.update(
+            cast(LibraryManager, Storage().getLibraryManager()).getLibraries()
+        )
 
-        WindowController().pushWindow(LibrariesWindow())
+    def showLibrariesWindow(self) -> None:
+        def update():
+            self.libraries_model.update(
+                cast(LibraryManager, Storage().getLibraryManager()).getLibraries()
+            )
+
+        window: LibrariesWindow = LibrariesWindow()
+        window.closed.connect(update)
+
+        WindowController().pushWindow(window)
 
     def showSettingsWindow(self) -> None:
 

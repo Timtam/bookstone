@@ -1,4 +1,5 @@
 import pathlib
+import uuid
 from typing import Any, Dict, Optional, Union, cast
 
 from .tag_collection import TagCollection
@@ -8,6 +9,7 @@ class Book:
 
     _path: pathlib.Path
     _tags: TagCollection
+    _uuid: str
 
     def __init__(
         self, path: Union[pathlib.Path, str] = "", tags: Optional[TagCollection] = None
@@ -19,17 +21,20 @@ class Book:
             self._tags = TagCollection()
 
         self.path = path  # type: ignore
+        self._uuid = str(uuid.uuid4())
 
     def serialize(self) -> Dict[str, Any]:
 
         return {
             "tags": self._tags.serialize(),
             "path": str(self._path),
+            "uuid": self._uuid,
         }
 
     def deserialize(self, serialized: Dict[str, Any]) -> None:
 
         self._path = pathlib.Path(serialized.get("path", ""))
+        self._uuid = serialized.get("uuid", self._uuid)
 
         tags: Dict[str, str] = serialized.get("tags", {})
 
@@ -68,3 +73,7 @@ class Book:
 
     def __repr__(self) -> str:
         return str(self)
+
+    @property
+    def uuid(self) -> str:
+        return self._uuid
