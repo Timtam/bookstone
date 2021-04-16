@@ -1,25 +1,44 @@
-from typing import Any, cast
+from typing import Any
 
+from dependency_injector.providers import Factory
 from PyQt5.QtWidgets import QAction, QLabel, QMenu, QMenuBar, QTreeView, QVBoxLayout
 
 from library.manager import LibraryManager
-from storage import Storage
-from ui import Window, WindowController
+from ui.controller import WindowController
 from ui.models.libraries_books import LibrariesBooksModel
+from ui.window import Window
 from ui.windows.libraries import LibrariesWindow
 from ui.windows.settings import SettingsWindow
 
 
 class MainWindow(Window):
 
+    _libraries_window_factory: Factory[LibrariesWindow]
+    _library_manager: LibraryManager
+    _settings_window_factory: Factory[SettingsWindow]
+    _window_controller: WindowController
+
     file_menu: QMenu
     libraries_model: LibrariesBooksModel
     libraries_view: QTreeView
     menu_bar: QMenuBar
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(
+        self,
+        library_manager: LibraryManager,
+        window_controller: WindowController,
+        libraries_window_factory: Factory[LibrariesWindow],
+        settings_window_factory: Factory[SettingsWindow],
+        *args: Any,
+        **kwargs: Any
+    ):
 
         super().__init__(*args, **kwargs)
+
+        self._libraries_window_factory = libraries_window_factory
+        self._library_manager = library_manager
+        self._settings_window_factory = settings_window_factory
+        self._window_controller = window_controller
 
         self.setWindowTitle("Bookstone")
 
@@ -51,21 +70,17 @@ class MainWindow(Window):
         self.libraries_view.setModel(self.libraries_model)
         libraries_view_label.setBuddy(self.libraries_view)
 
-        self.libraries_model.update(
-            cast(LibraryManager, Storage().getLibraryManager()).getLibraries()
-        )
+        self.libraries_model.update(self._library_manager.getLibraries())
 
     def showLibrariesWindow(self) -> None:
         def update():
-            self.libraries_model.update(
-                cast(LibraryManager, Storage().getLibraryManager()).getLibraries()
-            )
+            self.libraries_model.update(self._library_manager.getLibraries())
 
-        window: LibrariesWindow = LibrariesWindow()
+        window: LibrariesWindow = self._libraries_window_factory()
         window.closed.connect(update)
 
-        WindowController().pushWindow(window)
+        self._window_controller.pushWindow(window)
 
     def showSettingsWindow(self) -> None:
 
-        WindowController().pushWindow(SettingsWindow())
+        self._window_controller.pushWindow(self._settings_window_factory())

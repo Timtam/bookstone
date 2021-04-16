@@ -6,6 +6,7 @@
     "hidden_imports": [
         "Bass4Py.constants",
         "Bass4Py.exceptions",
+        "dependency_injector.errors",
         "filelike"
     ]
 }

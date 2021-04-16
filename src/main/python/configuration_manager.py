@@ -4,12 +4,9 @@ import os.path
 from json.decoder import JSONDecodeError
 from typing import Any, Dict, List, TextIO
 
-from py_singleton import singleton
-
 from library.naming_scheme import NamingScheme
 
 
-@singleton
 class ConfigurationManager:
     def __init__(self) -> None:
 

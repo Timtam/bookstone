@@ -4,16 +4,19 @@ from PyQt5.QtGui import QStandardItem, QStandardItemModel
 
 from backend import Backend
 from library.library import Library
-from storage import Storage
+from library.manager import LibraryManager
 
 
 class LibrariesModel(QStandardItemModel):
 
     _libraries: List[Library]
+    _library_manager: LibraryManager
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(self, library_manager: LibraryManager, *args: Any, **kwargs: Any):
 
         super().__init__(*args, **kwargs)
+
+        self._library_manager = library_manager
 
         self._libraries = []
 
@@ -28,7 +31,7 @@ class LibrariesModel(QStandardItemModel):
         self.setColumnCount(2)
         self.setHorizontalHeaderLabels(["Name", "Connection"])
 
-        self._libraries = Storage().getLibraryManager().getLibraries()
+        self._libraries = self._library_manager.getLibraries()
 
         for lib in self._libraries:
 

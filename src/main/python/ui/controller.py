@@ -1,15 +1,17 @@
 from typing import List
 
-from py_singleton import singleton
+from fbs_runtime.application_context.PyQt5 import ApplicationContext
 
-from storage import Storage
 from ui.window import Window
 
 
-@singleton
 class WindowController:
 
+    _context: ApplicationContext
     _window_stack: List[Window] = []
+
+    def __init__(self, context: ApplicationContext):
+        self._context = context
 
     def pushWindow(self, window: Window) -> None:
 
@@ -34,4 +36,4 @@ class WindowController:
         try:
             self._window_stack[-1].show()
         except IndexError:
-            Storage().getApplicationContext().app.exit()
+            self._context.app.exit()

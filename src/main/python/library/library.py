@@ -6,10 +6,10 @@ import warnings
 from json.decoder import JSONDecodeError
 from typing import Any, Dict, List, Optional, TextIO, Type, TypeVar, Union, cast
 
+import utils
 from backend import Backend
 from backends import Backends
 from configuration_manager import ConfigurationManager
-from utils import getLibrariesDirectory
 
 from .book import Book
 from .naming_scheme import NamingScheme
@@ -40,7 +40,7 @@ class Library:
     def fromFile(cls: Type[T], file: str) -> Optional[T]:
 
         libfile: TextIO
-        libpath: str = os.path.join(getLibrariesDirectory(), file)
+        libpath: str = os.path.join(utils.getLibrariesDirectory(), file)
 
         with open(libpath, "r") as libfile:
 
@@ -179,8 +179,8 @@ class Library:
 
         libfile: TextIO
 
-        if not os.path.exists(getLibrariesDirectory()):
-            os.makedirs(getLibrariesDirectory())
+        if not os.path.exists(utils.getLibrariesDirectory()):
+            os.makedirs(utils.getLibrariesDirectory())
 
         libpath: str = self.getFileName()
 
@@ -191,7 +191,7 @@ class Library:
             libfile.write(data)
 
     def getFileName(self) -> str:
-        return os.path.join(getLibrariesDirectory(), self.uuid + ".json")
+        return os.path.join(utils.getLibrariesDirectory(), self.uuid + ".json")
 
     def addBook(self, book: Book) -> None:
         self._books[book.path.as_posix()] = book

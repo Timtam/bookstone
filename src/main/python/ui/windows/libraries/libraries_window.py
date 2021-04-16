@@ -16,9 +16,8 @@ from backend import Backend
 from library.constants import INDEXING, PROGRESS
 from library.library import Library
 from library.manager import LibraryManager
-from storage import Storage
-from ui import Window
 from ui.models.libraries import LibrariesModel
+from ui.window import Window
 
 from .backend_tab import BackendTab
 from .backend_tabs import BackendTabs
@@ -26,6 +25,8 @@ from .details_dialog import DetailsDialog
 
 
 class LibrariesWindow(Window):
+
+    _library_manager: LibraryManager
 
     add_button: QPushButton
     add_actions: List[QAction]
@@ -36,9 +37,17 @@ class LibrariesWindow(Window):
     libraries_list: QTableView
     libraries_model: LibrariesModel
 
-    def __init__(self, *args: Any, **kwargs: Any):
+    def __init__(
+        self,
+        library_manager: LibraryManager,
+        libraries_model: LibrariesModel,
+        *args: Any,
+        **kwargs: Any,
+    ):
 
         super().__init__(*args, **kwargs)
+
+        self._library_manager = library_manager
 
         self.setWindowTitle("Bookstone - Libraries")
 
@@ -49,7 +58,7 @@ class LibrariesWindow(Window):
 
         self.libraries_list = QTableView(self)
         self.libraries_list.setTabKeyNavigation(False)
-        self.libraries_model = LibrariesModel()
+        self.libraries_model = libraries_model
         self.libraries_list.setModel(self.libraries_model)
         self.libraries_list.setSelectionMode(QTableView.SingleSelection)
         self.libraries_list.setSelectionBehavior(QTableView.SelectRows)
@@ -96,8 +105,7 @@ class LibrariesWindow(Window):
             return
 
         library.save()
-        store: Storage = Storage()
-        store.getLibraryManager().addLibrary(library)
+        self._library_manager.addLibrary(library)
 
         self.libraries_model.reloadLibraries()
 
@@ -106,9 +114,7 @@ class LibrariesWindow(Window):
 
     def removeLibrary(self, lib: Library) -> None:
 
-        manager: LibraryManager = Storage().getLibraryManager()
-
-        manager.removeLibrary(lib)
+        self._library_manager.removeLibrary(lib)
 
         self.libraries_list.selectionModel().clearSelection()
         self.libraries_model.reloadLibraries()
@@ -136,7 +142,7 @@ class LibrariesWindow(Window):
             index: int = source.indexAt(cast(QContextMenuEvent, event).pos()).row()
 
             if index >= 0:
-                lib: Library = Storage().getLibraryManager().getLibraries()[index]
+                lib: Library = self._library_manager.getLibraries()[index]
                 menu: QMenu = QMenu(self.libraries_list)
                 act = QAction("Edit", menu)
                 act.triggered.connect(lambda: self.editLibrary(lib))
@@ -154,7 +160,6 @@ class LibrariesWindow(Window):
         dlg: QProgressDialog
         current_value: int = 0
         maximum: int = 0
-        manager: LibraryManager = Storage().getLibraryManager()
 
         def library_fun(lib: str) -> None:
 
@@ -196,9 +201,9 @@ class LibrariesWindow(Window):
             else:
                 dlg.close()
 
-        manager.indexingFinished.connect(finished_fun)
-        manager.indexingLibrary.connect(library_fun)
-        manager.indexingProgress.connect(progress_fun)
+        self._library_manager.indexingFinished.connect(finished_fun)
+        self._library_manager.indexingLibrary.connect(library_fun)
+        self._library_manager.indexingProgress.connect(progress_fun)
 
         dlg = QProgressDialog(self)
         dlg.setAutoClose(False)
@@ -206,8 +211,8 @@ class LibrariesWindow(Window):
 
         dlg.setWindowModality(Qt.WindowModal)
 
-        manager.index()
+        self._library_manager.index()
 
-        manager.indexingFinished.disconnect(finished_fun)
-        manager.indexingLibrary.disconnect(library_fun)
-        manager.indexingProgress.disconnect(progress_fun)
+        self._library_manager.indexingFinished.disconnect(finished_fun)
+        self._library_manager.indexingLibrary.disconnect(library_fun)
+        self._library_manager.indexingProgress.disconnect(progress_fun)

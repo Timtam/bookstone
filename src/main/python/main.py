@@ -1,36 +1,27 @@
 import sys
 
-from fbs_runtime.application_context.PyQt5 import ApplicationContext
-
-from audio.manager import AudioManager
-from configuration_manager import ConfigurationManager
-from library.manager import LibraryManager
-from storage import Storage
-from ui import WindowController
-from ui.windows.main import MainWindow
-from utils import getConfigFile
+import utils
+from container import Container
 
 if __name__ == "__main__":
-    appctxt: ApplicationContext = (
-        ApplicationContext()
-    )  # 1. Instantiate ApplicationContext
 
-    store: Storage = Storage()
-    store.setApplicationContext(appctxt)
+    container = Container()
+    container.wire(modules=[sys.modules["utils"]])
 
-    conf_manager: ConfigurationManager = ConfigurationManager()
-    conf_manager.load(getConfigFile())
+    appctxt = container.application_context()
 
-    lib_manager: LibraryManager = LibraryManager()
-    store.setLibraryManager(lib_manager)
+    conf_manager = container.configuration_manager()
+    conf_manager.load(utils.getConfigFile())
 
-    am: AudioManager = AudioManager()
+    lib_manager = container.library_manager()
+
+    am = container.audio_manager()
     lib_manager.load()
     am.initialize()
 
-    controller: WindowController = WindowController()
-    controller.pushWindow(MainWindow())
+    controller = container.ui.window_controller()
+    controller.pushWindow(container.ui.main_window())
 
-    exit_code: int = appctxt.app.exec_()  # 2. Invoke appctxt.app.exec_()
-    conf_manager.save(getConfigFile())
+    exit_code: int = appctxt.app.exec_()
+    conf_manager.save(utils.getConfigFile())
     sys.exit(exit_code)

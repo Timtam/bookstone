@@ -1,11 +1,12 @@
 import os.path
 from typing import Tuple
 
-from storage import Storage
+from dependency_injector.wiring import Provide, inject
 
 
-def getAppDirectory() -> str:
-    return Storage().getApplicationContext()._resource_locator._dirs[0]
+@inject
+def getAppDirectory(application_context=Provide["application_context"]) -> str:
+    return application_context._resource_locator._dirs[0]
 
 
 def getConfigDirectory() -> str:
