@@ -12,7 +12,6 @@ class Node:
 
     _backend: Optional[Backend]
     _children: Dict[str, "Node"]
-    _indexed: bool
     _modification_time: int
     _name: str
     _parent: Optional["Node"]
@@ -28,7 +27,6 @@ class Node:
         self._parent = parent
         self._size = -1
         self._modification_time = -1
-        self._indexed = True
 
     def setName(self, name: str) -> None:
         self._name = name
@@ -59,6 +57,9 @@ class Node:
                     child=child, parent=self
                 )
             )
+
+        if self.findChild(child):
+            raise ValueError(f"a child {child} for {self} already exists")
 
         child.setParent(self)
         child.setBackend(cast(Backend, self._backend))
@@ -168,30 +169,20 @@ class Node:
     # files: return files
     # dirs: return directories
     # files and dirs allow proper filtering of the iterated children
-    # indexed: return only indexed children
 
     def iterChildren(
         self,
         depth: int = 0,
         files: bool = True,
         dirs: bool = True,
-        indexed: bool = False,
     ) -> Iterator["Node"]:
 
         child: Node
 
-        if indexed and not self.isIndexed(recursive=True):
-            return
-
-        for child in self._children.values():
-
-            if indexed and not child.isIndexed(recursive=True):
-                continue
+        for child in list(self._children.values()):
 
             if depth > 1:
-                yield from child.iterChildren(
-                    depth=depth - 1, files=files, dirs=dirs, indexed=indexed
-                )
+                yield from child.iterChildren(depth=depth - 1, files=files, dirs=dirs)
             elif depth == 1:
                 if (dirs and child.isDirectory()) or (files and child.isFile()):
                     yield child
@@ -199,9 +190,7 @@ class Node:
                 if files and child.isFile():
                     yield child
                 elif child.isDirectory():
-                    yield from child.iterChildren(
-                        depth=0, files=files, dirs=dirs, indexed=indexed
-                    )
+                    yield from child.iterChildren(depth=0, files=files, dirs=dirs)
 
     def __str__(self) -> str:
 
@@ -239,68 +228,6 @@ class Node:
             child.removeAllChildren()
 
         self._children.clear()
-
-    def clean(self) -> None:
-
-        child: "Node"
-
-        for child in self._children.copy().values():
-
-            if not child.isIndexed():
-                # the element is flagged as 'not indexed', thus it can be dropped
-                # if its a directory, it should take all of its children with it
-                self.removeChild(child)
-                continue
-
-            if child.isDirectory():
-
-                child.clean()
-
-                # directories without supported files don't need to exist in our tree
-                if len(child.getChildren()) == 0:
-                    self.removeChild(child)
-
-    # if recursive: return False as soon as all children are not indexed
-    # means: return True as soon as at least one child is indexed
-    # will return False for empty directories as well
-
-    def isIndexed(self, recursive: bool = False) -> bool:
-
-        if self.isDirectory() and len(self._children) == 0:
-            return False
-
-        if not recursive or len(self._children) == 0:
-            return self._indexed
-
-        child: "Node"
-
-        for child in self._children.values():
-            if child.isIndexed(recursive=True):
-                return True
-
-        return False
-
-    def setIndexed(self, recursive: bool = False) -> None:
-
-        child: "Node"
-
-        self._indexed = True
-
-        if recursive:
-
-            for child in self._children.values():
-                child.setIndexed(recursive)
-
-    def setNotIndexed(self, recursive: bool = False) -> None:
-
-        child: "Node"
-
-        self._indexed = False
-
-        if recursive:
-
-            for child in self._children.values():
-                child.setNotIndexed(recursive)
 
     def setBackend(self, backend: Backend) -> None:
 
@@ -341,3 +268,22 @@ class Node:
             raise IOError("{node} is not a file".format(node=self))
 
         self._size = size
+
+    def isParentOf(self, child: "Node") -> bool:
+
+        if self.getPath() == pathlib.Path(""):
+            return True
+
+        try:
+            return child.getPath().relative_to(self.getPath()) is not None
+        except ValueError:
+            return False
+
+    def __eq__(self, node: Any) -> bool:
+
+        if isinstance(node, Node):
+            return self.getPath() == node.getPath()
+        elif isinstance(node, str):
+            return self.getPath().as_posix() == node
+
+        return NotImplemented

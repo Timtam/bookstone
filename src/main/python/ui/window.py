@@ -1,4 +1,5 @@
 from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtGui import QCloseEvent
 from PyQt5.QtWidgets import QWidget
 
 
@@ -14,3 +15,8 @@ class Window(QWidget):
             self.closed.emit()
 
         return success
+
+    def closeEvent(self, event: QCloseEvent) -> None:
+
+        if event.spontaneous():
+            self.close()

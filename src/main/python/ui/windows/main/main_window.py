@@ -72,6 +72,8 @@ class MainWindow(Window):
 
         self.libraries_model.update(self._library_manager.getLibraries())
 
+        self._library_manager.startIndexing()
+
     def showLibrariesWindow(self) -> None:
         def update():
             self.libraries_model.update(self._library_manager.getLibraries())

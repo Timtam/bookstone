@@ -1,58 +1,32 @@
 import os
 import os.path
-import queue
-from typing import List, Optional, cast
+from typing import Dict, List, Optional, Tuple, cast
 
 import natsort
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt5.QtCore import QObject, QThread
 
-from backend import Backend
-from utils import getLibrariesDirectory, getSupportedFileExtensions
+from utils import getLibrariesDirectory
+from workers.library_indexing import LibraryIndexingResult, LibraryIndexingWorker
 
 from .book import Book
-from .constants import INDEXING, PROGRESS
 from .library import Library
-from .naming_scheme import NamingScheme
 from .node import Node
-from .tag_collection import TagCollection
 
 # keeps track of all libraries
-# it also manages the library indexing process and communicates the progress for the ui to display
+# it also manages the indexing process
 
 
 class LibraryManager(QObject):
 
-    # qt signals
-    # used for communication with ui elements while indexing libraries
-
-    # indexing operation started
-    indexingStarted: pyqtSignal = pyqtSignal()
-    # indexing operation finished
-    # parameter: success
-    indexingFinished: pyqtSignal = pyqtSignal(bool)
-    # name of the library now going to be indexed
-    indexingLibrary: pyqtSignal = pyqtSignal(str)
-    # sent whenever something changes when indexing
-    # parameter is a tuple
-    # first parameter is an int (INDEXING enum)
-    # second parameter is an int (PROGRESS enum)
-    # all following parameters depend on the progress enum
-    indexingProgress: pyqtSignal = pyqtSignal(tuple)
-
-    _cancel_indexing: bool
-    _indexing: bool
+    _indexing_state: Dict[Library, Tuple[LibraryIndexingWorker, QThread]]
     _libraries: List[Library]
 
     def __init__(self) -> None:
 
         super().__init__()
 
-        self._cancel_indexing = False
-        self._indexing = False
+        self._indexing_state = {}
         self._libraries = []
-
-        self.indexingStarted.connect(lambda: self._set_indexing(True))
-        self.indexingFinished.connect(lambda: self._set_indexing(False))
 
     def addLibrary(self, lib: Library) -> None:
         self._libraries.append(lib)
@@ -66,6 +40,12 @@ class LibraryManager(QObject):
     def removeLibrary(self, lib: Library) -> None:
 
         i: int = self._libraries.index(lib)
+
+        if lib in self._indexing_state:
+            self._indexing_state[lib][1].requestInterruption()
+            self._indexing_state[lib][1].quit()
+            self._indexing_state[lib][1].wait()
+            del self._indexing_state[lib]
 
         if os.path.exists(lib.getFileName()):
             os.remove(lib.getFileName())
@@ -88,167 +68,101 @@ class LibraryManager(QObject):
             if l:
                 self._libraries.append(l)
 
-    def index(self) -> None:
+    def startIndexing(self) -> None:
 
-        _: str
-        dir: str
-        ext: str
         lib: Library
-
-        self.indexingStarted.emit()
 
         for lib in self._libraries:
 
-            self.indexingLibrary.emit(lib.getName())
+            if lib in self._indexing_state:
+                continue
 
-            self._index_folder_structure(lib)
+            worker: LibraryIndexingWorker = LibraryIndexingWorker(lib)
+            thread: QThread = QThread(parent=self)
 
-            self._index_books(lib)
+            worker.moveToThread(thread)
 
-            lib.save()
+            thread.started.connect(worker.run)
+            worker.finished.connect(thread.quit)
+            worker.finished.connect(worker.deleteLater)
+            thread.finished.connect(thread.deleteLater)
 
-        self.indexingFinished.emit(True)
+            worker.result.connect(self._receive_indexing_result)
 
-    def _index_folder_structure(self, lib: Library) -> None:
-
-        tree: Node = cast(Node, lib.getTree())
-        tree.setNotIndexed(recursive=True)
-
-        backend: Backend = cast(Backend, lib.getBackend())
-
-        open: queue.Queue[Node] = queue.Queue()
-
-        open.put(tree)
-
-        while not open.empty():
-
-            if self._cancel_indexing:
-                self.indexingFinished.emit(False)
-                return
-
-            next: Node = open.get()
-
-            self.indexingProgress.emit(
-                (
-                    INDEXING.READING,
-                    PROGRESS.UPDATE_MAXIMUM,
-                    1,
-                )
+            self._indexing_state[lib] = (
+                worker,
+                thread,
             )
 
-            self.indexingProgress.emit(
-                (
-                    INDEXING.READING,
-                    PROGRESS.VALUE,
-                    1,
-                )
-            )
+            thread.start()
 
-            next_path: str = next.getPath().as_posix()
+    def _receive_indexing_result(self, result: LibraryIndexingResult) -> None:
 
-            dir_list: List[str] = backend.listDirectory(next_path)
+        del self._indexing_state[result.library]
 
-            self.indexingProgress.emit(
-                (
-                    INDEXING.READING,
-                    PROGRESS.UPDATE_MAXIMUM,
-                    len(dir_list),
-                )
-            )
+        lib: Library = result.library
 
-            for dir in dir_list:
+        # comparing both trees
+        new_tree: Node = result.tree
+        old_tree = lib.getTree()
+        current: Node
+        new: Node
+        path: List[Node] = []
+        parent: Optional[Node]
+        processed_nodes: List[Node] = []
 
-                if self._cancel_indexing:
-                    self.indexingFinished.emit(False)
-                    return
+        for current in new_tree.iterChildren(dirs=False):
 
-                self.indexingProgress.emit(
-                    (
-                        INDEXING.READING,
-                        PROGRESS.VALUE,
-                        1,
-                    )
-                )
+            processed_nodes.append(current)
 
-                new: Optional[Node] = tree.findChild(os.path.join(next_path, dir))
+            if not old_tree.findChild(current):
 
-                if new is None:
+                path.append(current)
+
+                while not old_tree.findChild(cast(Node, current.getParent())):
+
                     new = Node()
-                    new.setName(dir)
-
-                if backend.isDirectory(os.path.join(next_path, dir)):
+                    new.setName(cast(Node, current.getParent()).getName())
                     new.setDirectory()
+
+                    path.append(new)
+                    current = cast(Node, current.getParent())
+
+                parent = old_tree.findChild(cast(Node, current.getParent()))
+
+                while len(path):
+
+                    new = path.pop()
+
+                    cast(Node, parent).addChild(new)
+                    parent = new
+
+        # all file nodes still within the tree, but not within the new tree, need to be dropped
+        for current in old_tree.iterChildren(dirs=False):
+
+            if current in processed_nodes:
+                continue
+
+            parent = current.getParent()
+
+            while parent:
+
+                cast(Node, parent).removeChild(current)
+
+                if len(list(parent.iterChildren(dirs=False))) == 0:
+                    current = parent
+                    parent = cast(Node, parent).getParent()
                 else:
-                    new.setFile()
+                    parent = None
 
-                if new.isFile():
-
-                    # check file extensions
-                    _, ext = os.path.splitext(new.getName())
-
-                    if not ext.lower() in getSupportedFileExtensions():
-                        if new.getParent() is not None:
-                            next.removeChild(new)
-                        continue
-                    else:
-                        new.setIndexed()
-
-                if next.findChild(new) is None:
-                    next.addChild(new)
-
-                if new.isDirectory():
-                    open.put(new)
-
-            next.setIndexed()
-
-        tree.clean()
-
-    def _set_indexing(self, indexing: bool) -> None:
-        self._indexing = indexing
-
-    def _index_books(self, lib: Library) -> None:
-
-        books: List[Book] = []
+        # comparing new to old book analysis results
+        books: List[Book] = result.books
         book: Book
-        match: Optional[TagCollection]
-        next: Node
-        ns: NamingScheme = cast(NamingScheme, lib.getNamingScheme())
-        tree: Node = cast(Node, lib.getTree())
-
-        # process all volumes
-
-        for next in tree.iterChildren(
-            depth=ns.getDepth(ns.volume.getPattern()), files=False, indexed=True
-        ):
-
-            match = ns.volume.match(next.getPath().as_posix())
-
-            if match:
-                book = Book(next.getPath(), match)
-
-                books.append(book)
-                next.setNotIndexed(recursive=True)
-
-        # process all standalones
-
-        for next in tree.iterChildren(
-            depth=ns.getDepth(ns.standalone.getPattern()), files=False, indexed=True
-        ):
-
-            match = ns.standalone.match(next.getPath().as_posix())
-
-            if match:
-                book = Book(next.getPath(), match)
-
-                books.append(book)
-                next.setNotIndexed(recursive=True)
-
-        tree.setIndexed(recursive=True)
 
         # iterate over all books and remove books with missing paths
 
         for book in lib.getBooks():
-            if not tree.findChild(book.path.as_posix()):
+            if not old_tree.findChild(book.path.as_posix()):
                 lib.removeBook(book)
 
         # add all books not in the library
@@ -258,9 +172,17 @@ class LibraryManager(QObject):
             if not lib.findBook(book):
                 lib.addBook(book)
 
-    def cancelIndexing(self) -> None:
+        lib.save()
 
-        if not self._indexing and not self._cancel_indexing:
-            return
+    def abortIndexing(self) -> None:
 
-        self._cancel_indexing = True
+        lib: Library
+        threads: Tuple[LibraryIndexingWorker, QThread]
+
+        for lib, threads in self._indexing_state.items():
+
+            threads[1].requestInterruption()
+            threads[1].quit()
+            threads[1].wait()
+
+        self._indexing_state.clear()

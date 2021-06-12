@@ -9,7 +9,7 @@ class Book:
 
     _path: pathlib.Path
     _tags: TagCollection
-    _uuid: str
+    _uuid: uuid.UUID
 
     def __init__(
         self, path: Union[pathlib.Path, str] = "", tags: Optional[TagCollection] = None
@@ -21,20 +21,20 @@ class Book:
             self._tags = TagCollection()
 
         self.path = path  # type: ignore
-        self._uuid = str(uuid.uuid4())
+        self._uuid = uuid.uuid4()
 
     def serialize(self) -> Dict[str, Any]:
 
         return {
             "tags": self._tags.serialize(),
             "path": str(self._path),
-            "uuid": self._uuid,
+            "uuid": str(self._uuid),
         }
 
     def deserialize(self, serialized: Dict[str, Any]) -> None:
 
         self._path = pathlib.Path(serialized.get("path", ""))
-        self._uuid = serialized.get("uuid", self._uuid)
+        self._uuid = uuid.UUID(serialized.get("uuid", str(self._uuid)))
 
         tags: Dict[str, str] = serialized.get("tags", {})
 
@@ -76,4 +76,7 @@ class Book:
 
     @property
     def uuid(self) -> str:
-        return self._uuid
+        return str(self._uuid)
+
+    def __hash__(self) -> int:
+        return self._uuid.int

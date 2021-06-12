@@ -191,7 +191,7 @@ class LibrariesBooksModel(QAbstractItemModel):
         return self.getItem(parent).childCount
 
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        return self._root.columnCount
+        return self.getItem(parent).columnCount
 
     def index(
         self, row: int, column: int, parent: QModelIndex = QModelIndex()

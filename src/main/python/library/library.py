@@ -25,13 +25,13 @@ class Library:
     _name: str
     _naming_scheme: Optional[NamingScheme]
     _tree: Node
-    _uuid: str
+    _uuid: uuid.UUID
 
     def __init__(self) -> None:
 
         self._backend = None
         self._books = {}
-        self._uuid = str(uuid.uuid4())
+        self._uuid = uuid.uuid4()
         self._name = ""
         self._naming_scheme = None
         self._tree = Node()
@@ -75,7 +75,7 @@ class Library:
             "name": self._name,
             "backendName": cast(Backend, self._backend).getName(),
             "backend": cast(Backend, self._backend).serialize(),
-            "uuid": self._uuid,
+            "uuid": str(self._uuid),
             "tree": cast(Node, self._tree).serialize(),
             "books": [b.serialize() for b in self._books.values()],
             "naming_scheme": cast(NamingScheme, self._naming_scheme).name,
@@ -105,11 +105,8 @@ class Library:
 
         self._backend = backend
         self._tree.setBackend(self._backend)
-        self._uuid = serialized.get("uuid", "")
+        self._uuid = uuid.UUID(serialized.get("uuid", ""))
         self._name = serialized.get("name", "")
-
-        if not self._uuid:
-            raise IOError("no valid UUID found")
 
         tree: Dict[str, Any] = serialized.get("tree", {})
 
@@ -148,13 +145,13 @@ class Library:
 
     @property
     def uuid(self) -> str:
-        return self._uuid
+        return str(self._uuid)
 
     def __eq__(self, lib: Any) -> bool:
         if isinstance(lib, Library):
             return self._uuid == lib._uuid
         elif isinstance(lib, str):
-            return self._uuid == lib
+            return str(self._uuid) == lib
         return NotImplemented
 
     def getName(self) -> str:
@@ -191,7 +188,7 @@ class Library:
             libfile.write(data)
 
     def getFileName(self) -> str:
-        return os.path.join(utils.getLibrariesDirectory(), self.uuid + ".json")
+        return os.path.join(utils.getLibrariesDirectory(), str(self._uuid) + ".json")
 
     def addBook(self, book: Book) -> None:
         self._books[book.path.as_posix()] = book
@@ -209,3 +206,6 @@ class Library:
 
     def removeBook(self, book: Book) -> None:
         del self._books[book.path.as_posix()]
+
+    def __hash__(self) -> int:
+        return self._uuid.int

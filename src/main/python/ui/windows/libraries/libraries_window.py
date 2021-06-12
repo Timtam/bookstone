@@ -1,19 +1,10 @@
-from typing import Any, Callable, List, Tuple, Type, Union, cast
+from typing import Any, Callable, List, Type, cast
 
-from PyQt5.QtCore import QEvent, QObject, Qt
+from PyQt5.QtCore import QEvent, QObject
 from PyQt5.QtGui import QContextMenuEvent
-from PyQt5.QtWidgets import (
-    QAction,
-    QLabel,
-    QMenu,
-    QProgressDialog,
-    QPushButton,
-    QTableView,
-    QVBoxLayout,
-)
+from PyQt5.QtWidgets import QAction, QLabel, QMenu, QPushButton, QTableView, QVBoxLayout
 
 from backend import Backend
-from library.constants import INDEXING, PROGRESS
 from library.library import Library
 from library.manager import LibraryManager
 from ui.models.libraries import LibrariesModel
@@ -32,7 +23,6 @@ class LibrariesWindow(Window):
     add_actions: List[QAction]
     add_menu: QMenu
     close_button: QPushButton
-    indexing_button: QPushButton
     libraries_label: QLabel
     libraries_list: QTableView
     libraries_model: LibrariesModel
@@ -83,10 +73,6 @@ class LibrariesWindow(Window):
             act.triggered.connect(self.generateShowAddDialogLambda(tab))
 
         self.add_button.setMenu(self.add_menu)
-
-        self.indexing_button = QPushButton("Index libraries", self)
-        self.indexing_button.pressed.connect(self.runIndexer)
-        layout.addWidget(self.indexing_button)
 
         self.close_button = QPushButton("Close", self)
         self.close_button.pressed.connect(self.close)  # type: ignore
@@ -154,65 +140,3 @@ class LibrariesWindow(Window):
 
                 return True
         return super().eventFilter(source, event)
-
-    def runIndexer(self) -> None:
-
-        dlg: QProgressDialog
-        current_value: int = 0
-        maximum: int = 0
-
-        def library_fun(lib: str) -> None:
-
-            nonlocal current_value, maximum
-
-            dlg.setWindowTitle(f"Bookstone - Indexing library {lib}...")
-
-            dlg.reset()
-
-            current_value = 0
-            maximum = 0
-            dlg.setValue(current_value)
-            dlg.setMaximum(maximum)
-
-        def progress_fun(t: Tuple[int, int, Union[str, int]]) -> None:
-
-            nonlocal current_value, maximum
-
-            op: int = t[0]
-            msg: int = t[1]
-
-            if op == INDEXING.READING and msg == PROGRESS.VALUE:
-                current_value += cast(int, t[2])
-                dlg.setValue(current_value)
-            elif op == INDEXING.READING and msg == PROGRESS.UPDATE_MAXIMUM:
-                maximum += cast(int, t[2])
-                dlg.setMaximum(maximum)
-            elif op == INDEXING.READING and msg == PROGRESS.MESSAGE:
-                dlg.setLabelText(
-                    cast(str, t[2]).format(value=current_value, maximum=maximum)
-                )
-
-        def finished_fun(success: bool) -> None:
-
-            nonlocal dlg
-
-            if not success:
-                dlg.cancel()
-            else:
-                dlg.close()
-
-        self._library_manager.indexingFinished.connect(finished_fun)
-        self._library_manager.indexingLibrary.connect(library_fun)
-        self._library_manager.indexingProgress.connect(progress_fun)
-
-        dlg = QProgressDialog(self)
-        dlg.setAutoClose(False)
-        dlg.setAutoReset(False)
-
-        dlg.setWindowModality(Qt.WindowModal)
-
-        self._library_manager.index()
-
-        self._library_manager.indexingFinished.disconnect(finished_fun)
-        self._library_manager.indexingLibrary.disconnect(library_fun)
-        self._library_manager.indexingProgress.disconnect(progress_fun)

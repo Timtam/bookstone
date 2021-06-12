@@ -17,7 +17,9 @@ class UIContainer(DeclarativeContainer):
     library_manager: Dependency[LibraryManager] = Dependency()
 
     settings_window = Factory(SettingsWindow)
-    window_controller = Singleton(WindowController, application_context)
+    window_controller = Singleton(
+        WindowController, application_context, library_manager
+    )
 
     libraries_model = Factory(LibrariesModel, library_manager=library_manager)
     libraries_window = Factory(

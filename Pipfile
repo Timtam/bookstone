@@ -10,6 +10,7 @@ natsort = "*"
 pyqt5 = "*"
 smbprotocol = "*"
 dependency-injector = "*"
+pyinstaller = "==3.4"
 
 [dev-packages]
 mypy = "*"
@@ -18,6 +19,7 @@ black = "*"
 isort = "*"
 pre-commit = "*"
 pyqt5-stubs = "*"
+vulture = "*"
 
 [requires]
 python_version = "3.8"
