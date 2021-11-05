@@ -1,6 +1,6 @@
 from dependency_injector.containers import DeclarativeContainer
 from dependency_injector.providers import Dependency, Factory, Singleton
-from fbs_runtime.application_context.PyQt5 import ApplicationContext
+from PyQt5.QtWidgets import QApplication
 
 from library.manager import LibraryManager
 
@@ -13,13 +13,11 @@ from .windows.settings import SettingsWindow
 
 class UIContainer(DeclarativeContainer):
 
-    application_context: Dependency[ApplicationContext] = Dependency()
+    application: Dependency[QApplication] = Dependency()
     library_manager: Dependency[LibraryManager] = Dependency()
 
     settings_window = Factory(SettingsWindow)
-    window_controller = Singleton(
-        WindowController, application_context, library_manager
-    )
+    window_controller = Singleton(WindowController, application, library_manager)
 
     libraries_model = Factory(LibrariesModel, library_manager=library_manager)
     libraries_window = Factory(

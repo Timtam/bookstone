@@ -1,7 +1,7 @@
 from dependency_injector.containers import DeclarativeContainer
 from dependency_injector.providers import Container as ContainerProvider
 from dependency_injector.providers import Singleton
-from fbs_runtime.application_context.PyQt5 import ApplicationContext
+from PyQt5.QtWidgets import QApplication
 
 from audio.manager import AudioManager
 from configuration_manager import ConfigurationManager
@@ -11,7 +11,7 @@ from ui.container import UIContainer
 
 class Container(DeclarativeContainer):
 
-    application_context: Singleton[ApplicationContext] = Singleton(ApplicationContext)
+    application: Singleton[QApplication] = Singleton(QApplication, [])
     audio_manager = Singleton(AudioManager)
     configuration_manager = Singleton(ConfigurationManager)
 
@@ -20,6 +20,6 @@ class Container(DeclarativeContainer):
     # sub-container
     ui = ContainerProvider(
         UIContainer,
-        application_context=application_context,
+        application=application,
         library_manager=library_manager,
     )

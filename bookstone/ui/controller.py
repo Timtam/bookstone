@@ -1,6 +1,6 @@
 from typing import List
 
-from fbs_runtime.application_context.PyQt5 import ApplicationContext
+from PyQt5.QtWidgets import QApplication
 
 from library.manager import LibraryManager
 from ui.window import Window
@@ -8,12 +8,12 @@ from ui.window import Window
 
 class WindowController:
 
-    _context: ApplicationContext
+    _application: QApplication
     _library_manager: LibraryManager
     _window_stack: List[Window] = []
 
-    def __init__(self, context: ApplicationContext, library_manager: LibraryManager):
-        self._context = context
+    def __init__(self, application: QApplication, library_manager: LibraryManager):
+        self._application = application
         self._library_manager = library_manager
 
     def pushWindow(self, window: Window) -> None:
@@ -40,4 +40,4 @@ class WindowController:
             self._window_stack[-1].show()
         except IndexError:
             self._library_manager.abortIndexing()
-            self._context.app.exit()
+            self._application.exit()

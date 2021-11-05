@@ -113,7 +113,7 @@ class DetailsDialog(QDialog):
 
         try:
             backend.listDirectory(".")
-        except BackendError as exc:
+        except BackendError as exc:  # noqa: F841
             box: QMessageBox = QMessageBox()
             box.setText("Error connecting using the provided information.")
             box.setStandardButtons(QMessageBox.Ok)

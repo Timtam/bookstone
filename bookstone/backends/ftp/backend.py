@@ -47,7 +47,7 @@ class FTPBackend(Backend):
                         port=self._port,
                         session_factory=self._get_session_factory(),
                     )
-                except ftputil.error.FTPOSError as exc:
+                except ftputil.error.FTPOSError as exc:  # noqa: F841
                     raise BackendError(str(exc))
             return f(self, *args, host=self._host_obj, **kwargs)
 
@@ -121,7 +121,7 @@ class FTPBackend(Backend):
 
         try:
             return host.listdir(dir)
-        except ftputil.error.PermanentError as exc:
+        except ftputil.error.PermanentError as exc:  # noqa: F841
             raise BackendError(str(exc))
 
     @withHost

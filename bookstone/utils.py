@@ -1,12 +1,13 @@
 import os.path
+import sys
 from typing import Tuple
 
-from dependency_injector.wiring import Provide, inject
 
-
-@inject
-def getAppDirectory(application_context=Provide["application_context"]) -> str:
-    return application_context._resource_locator._dirs[0]
+def getAppDirectory() -> str:
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(sys.executable)
+    else:
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
 
 
 def getConfigDirectory() -> str:

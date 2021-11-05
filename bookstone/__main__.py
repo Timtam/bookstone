@@ -6,9 +6,8 @@ from container import Container
 if __name__ == "__main__":
 
     container = Container()
-    container.wire(modules=[sys.modules["utils"]])
 
-    appctxt = container.application_context()
+    app = container.application()
 
     conf_manager = container.configuration_manager()
     conf_manager.load(utils.getConfigFile())
@@ -22,6 +21,6 @@ if __name__ == "__main__":
     controller = container.ui.window_controller()
     controller.pushWindow(container.ui.main_window())
 
-    exit_code: int = appctxt.app.exec_()
+    exit_code: int = app.exec_()
     conf_manager.save(utils.getConfigFile())
     sys.exit(exit_code)
