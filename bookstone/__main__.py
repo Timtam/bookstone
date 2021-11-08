@@ -22,5 +22,6 @@ if __name__ == "__main__":
     controller.pushWindow(container.ui.main_window())
 
     exit_code: int = app.exec_()
+    am.uninitialize()
     conf_manager.save(utils.getConfigFile())
     sys.exit(exit_code)

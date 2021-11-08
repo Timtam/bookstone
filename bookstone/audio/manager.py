@@ -1,24 +1,25 @@
-import os
 import os.path
-from typing import Optional, cast
+from typing import Optional
 
-from backend import Backend
-from backend_file import BackendFile
-from library.node import Node
+from PyQt5.QtCore import QObject, QThread
+
+from workers.playback_worker import PlaybackWorker
 
 os.add_dll_directory(os.getcwd())
 
 from Bass4Py.bass import BASS, OutputDevice  # noqa: E402
 
-from .stream import AudioStream  # noqa: E402
 
-
-class AudioManager:
+class AudioManager(QObject):
 
     _bass: BASS
     _device: Optional[OutputDevice]
+    _worker: PlaybackWorker
+    _worker_thread: QThread
 
     def __init__(self) -> None:
+
+        super().__init__()
 
         self._bass = BASS()
         self._device = None
@@ -28,6 +29,24 @@ class AudioManager:
         self._device = self._bass.GetOutputDevice(-1)
         self._device.Init(44100, 0, -1)
 
+        self._worker = PlaybackWorker()
+        self._worker_thread = QThread(parent=self)
+        self._worker.moveToThread(self._worker_thread)
+
+        self._worker_thread.started.connect(self._worker.run)
+        self._worker.finished.connect(self._worker_thread.quit)
+        self._worker.finished.connect(self._worker.deleteLater)
+        self._worker_thread.finished.connect(self._worker_thread.deleteLater)
+
+        self._worker_thread.start()
+
+    def uninitialize(self) -> None:
+
+        self._worker_thread.requestInterruption()
+        self._worker_thread.quit()
+        self._worker_thread.wait()
+
+    """
     def openStream(self, node: Node) -> AudioStream:
 
         device: OutputDevice = self._device
@@ -39,3 +58,4 @@ class AudioManager:
         )
 
         return AudioStream(obj, device)
+    """

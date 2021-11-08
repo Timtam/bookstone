@@ -149,7 +149,7 @@ class LibraryManager(QObject):
 
                 cast(Node, parent).removeChild(current)
 
-                if len(list(parent.iterChildren(dirs=False))) == 0:
+                if sum(1 for child in parent.iterChildren(dirs=False)) == 0:
                     current = parent
                     parent = cast(Node, parent).getParent()
                 else:
