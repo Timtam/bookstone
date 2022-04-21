@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "bookstone"
+version = "0.1.0"
+description = "an audio book library and playback application"
+authors = ["Toni Barth <software@satoprogs.de>"]
+license = "MIT"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+ftputil = "^5.0.3"
+natsort = "^8.1.0"
+PyQt5 = "^5.15.6"
+smbprotocol = "^1.9.0"
+dependency-injector = "^4.39.1"
+
+[tool.poetry.dev-dependencies]
+mypy = "^0.942"
+flake8 = "^4.0.1"
+black = "^22.3.0"
+isort = "^5.10.1"
+pre-commit = "^2.18.1"
+PyQt5-stubs = "^5.15.2"
+pyinstaller = { version = "^5.0", python = "^3.7, <3.11" }
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
