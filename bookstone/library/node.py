@@ -1,8 +1,6 @@
 import os.path
 import pathlib
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union, cast
-
-from backend import Backend
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 NODE_DIRECTORY = 0
 NODE_FILE = 1
@@ -10,7 +8,6 @@ NODE_FILE = 1
 
 class Node:
 
-    _backend: Optional[Backend]
     _children: Dict[str, "Node"]
     _modification_time: int
     _name: str
@@ -20,7 +17,6 @@ class Node:
 
     def __init__(self, name: str = "", parent: Optional["Node"] = None) -> None:
 
-        self._backend = None
         self._name = name
         self._type = NODE_DIRECTORY
         self._children = {}
@@ -62,7 +58,6 @@ class Node:
             raise ValueError(f"a child {child} for {self} already exists")
 
         child.setParent(self)
-        child.setBackend(cast(Backend, self._backend))
         self._children[child.getName()] = child
 
     def getParent(self) -> Optional["Node"]:
@@ -127,7 +122,6 @@ class Node:
             node: "Node" = Node()
             node.deserialize(child)
             node.setParent(self)
-            node.setBackend(cast(Backend, self._backend))
             self._children[node.getName()] = node
 
     def findChild(self, location: Union["Node", str]) -> Optional["Node"]:
@@ -137,6 +131,13 @@ class Node:
         if isinstance(location, Node):
             try:
                 path = location.getPath().relative_to(self.getPath())
+
+                # if we're checking at root level and two nested folders are named exactly the same way
+                # the algorithm thinks that they are the same
+                # compare a Node abc with a Node abc fails, because they are called the same
+                # but we are meant to check for children only
+                if location.getPath() == self.getPath():
+                    path = location.getPath()
             except ValueError:
                 if self.getPath() == pathlib.Path(""):
                     path = location.getPath()
@@ -228,18 +229,6 @@ class Node:
             child.removeAllChildren()
 
         self._children.clear()
-
-    def setBackend(self, backend: Backend) -> None:
-
-        child: "Node"
-
-        self._backend = backend
-
-        for child in self._children.values():
-            child.setBackend(backend)
-
-    def getBackend(self) -> Optional[Backend]:
-        return self._backend
 
     def getModificationTime(self) -> int:
 

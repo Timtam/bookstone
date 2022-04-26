@@ -1,38 +1,44 @@
-from typing import TYPE_CHECKING, Any, Optional
+import re
+from abc import abstractmethod
+from typing import TYPE_CHECKING, Any, Type, TypeVar
 
 from PyQt5.QtWidgets import QWidget
-
-from backend import Backend
 
 if TYPE_CHECKING:
 
     from ui.windows.library_window.details_dialog import DetailsDialog
 
+T = TypeVar("T", bound="BackendTab")
+
 
 class BackendTab(QWidget):
 
-    backend: Optional[Backend]
+    _PATH_REGEX_: re.Pattern
+
     parent: "DetailsDialog"
 
-    def __init__(
-        self,
-        parent: "DetailsDialog",
-        backend: Optional[Backend],
-        *args: Any,
-        **kwargs: Any
-    ) -> None:
+    def __init__(self, parent: "DetailsDialog", *args: Any, **kwargs: Any) -> None:
 
         super().__init__(*args, **kwargs)
 
         self.parent = parent
-        self.backend = backend
 
     def isValid(self) -> bool:
         return True
 
-    def getBackend(self) -> Backend:
-        pass
-
     @staticmethod
+    @abstractmethod
     def getName() -> str:
         pass
+
+    @abstractmethod
+    def getPath(self) -> str:
+        pass
+
+    @abstractmethod
+    def setPath(self, path: str) -> None:
+        pass
+
+    @classmethod
+    def matchesPath(cls: Type[T], path: str) -> bool:
+        return bool(cls._PATH_REGEX_.match(path))

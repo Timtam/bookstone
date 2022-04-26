@@ -1,11 +1,11 @@
 import os.path
 import queue
 from dataclasses import dataclass
-from typing import Dict, List, Optional, cast
+from typing import TYPE_CHECKING, Dict, List, Optional, cast
 
+import fs
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 
-from backend import Backend
 from exceptions import ThreadStoppedError
 from library.book import Book
 from library.library import Library
@@ -13,6 +13,9 @@ from library.naming_scheme import NamingScheme
 from library.node import Node
 from library.tag_collection import TagCollection
 from utils import getSupportedFileExtensions
+
+if TYPE_CHECKING:
+    import pathlib.Path
 
 
 @dataclass
@@ -57,48 +60,48 @@ class LibraryIndexingWorker(QObject):
         tree: Node = Node()
         tree.setDirectory()
 
-        backend: Backend = cast(Backend, lib.getBackend())
-
         open: queue.Queue[Node] = queue.Queue()
 
         open.put(tree)
 
-        while not open.empty():
+        with fs.open_fs(lib.getPath()) as f:
 
-            if QThread.currentThread().isInterruptionRequested():
-                raise ThreadStoppedError()
+            while not open.empty():
 
-            next: Node = open.get()
+                if QThread.currentThread().isInterruptionRequested():
+                    raise ThreadStoppedError()
 
-            next_path: str = next.getPath().as_posix()
+                next: Node = open.get()
 
-            dir_list: List[str] = backend.listDirectory(next_path)
+                next_path: "pathlib.Path" = next.getPath()
 
-            for dir in dir_list:
+                dir_list: List[str] = f.listdir(next_path.as_posix())
 
-                new: Node = Node()
-                new.setName(dir)
+                for dir in dir_list:
 
-                if backend.isDirectory(os.path.join(next_path, dir)):
-                    new.setDirectory()
-                else:
-                    new.setFile()
+                    new: Node = Node()
+                    new.setName(dir)
 
-                if new.isFile():
+                    if f.isdir((next_path / dir).as_posix()):
+                        new.setDirectory()
+                    else:
+                        new.setFile()
 
-                    # check file extensions
-                    _, ext = os.path.splitext(new.getName())
+                    if new.isFile():
 
-                    if not ext.lower() in getSupportedFileExtensions():
-                        del new
-                        continue
+                        # check file extensions
+                        _, ext = os.path.splitext(new.getName())
 
-                next.addChild(new)
+                        if not ext.lower() in getSupportedFileExtensions():
+                            del new
+                            continue
 
-                if new.isDirectory():
-                    open.put(new)
+                    next.addChild(new)
 
-        return tree
+                    if new.isDirectory():
+                        open.put(new)
+
+            return tree
 
     def indexBooks(self, lib: Library, tree: Node) -> List[Book]:
 

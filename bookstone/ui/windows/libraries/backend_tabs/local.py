@@ -1,14 +1,15 @@
-from typing import Any, List, cast
+import re
+from typing import Any, List
 
+import fs
 from PyQt5.QtWidgets import QFileDialog, QLabel, QLineEdit, QPushButton, QVBoxLayout
-
-from backend import Backend
-from backends.local import LocalBackend
 
 from ..backend_tab import BackendTab
 
 
 class LocalBackendTab(BackendTab):
+
+    _PATH_REGEX_ = re.compile("(?:osfs://)(?P<path>.*)")
 
     browse_button: QPushButton
     folder_input: QLineEdit
@@ -17,14 +18,11 @@ class LocalBackendTab(BackendTab):
 
         super().__init__(*args, **kwargs)
 
-        if not self.backend:
-            self.backend = LocalBackend()
-
         layout: QVBoxLayout = QVBoxLayout(self)
         folder_label: QLabel = QLabel("Library directory:", self)
         layout.addWidget(folder_label)
 
-        self.folder_input = QLineEdit(self.backend.getPath(), self)
+        self.folder_input = QLineEdit(self)
         self.folder_input.setReadOnly(True)
         folder_label.setBuddy(self.folder_input)
         layout.addWidget(self.folder_input)
@@ -35,17 +33,9 @@ class LocalBackendTab(BackendTab):
 
         self.setLayout(layout)
 
-    def getBackend(self) -> Backend:
-
-        b: LocalBackend = cast(LocalBackend, self.backend)
-
-        b.setPath(self.folder_input.text())
-
-        return b
-
     @staticmethod
     def getName() -> str:
-        return LocalBackend.getName()
+        return "Local"
 
     def browseDirectory(self) -> None:
 
@@ -68,3 +58,22 @@ class LocalBackendTab(BackendTab):
     def isValid(self) -> bool:
 
         return bool(self.folder_input.text())
+
+    def getPath(self) -> str:
+
+        if not self.isValid():
+            return ""
+
+        with fs.open_fs(f"osfs://{self.folder_input.text()}") as f:
+            return f.geturl(".", purpose="fs")
+
+    def setPath(self, path: str) -> None:
+
+        match = self._PATH_REGEX_.match(path)
+
+        if not match:
+            return
+
+        self.folder_input.blockSignals(True)
+        self.folder_input.setText(match.group("path"))
+        self.folder_input.blockSignals(False)

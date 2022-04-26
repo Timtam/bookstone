@@ -1,21 +1,31 @@
-from typing import Any, List, cast
+from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type
 
 from PyQt5.QtGui import QStandardItem, QStandardItemModel
 
-from backend import Backend
 from library.library import Library
 from library.manager import LibraryManager
+
+if TYPE_CHECKING:
+    from ui.windows.libraries.backend_tab import BackendTab
 
 
 class LibrariesModel(QStandardItemModel):
 
+    _backend_tabs: Tuple[Type["BackendTab"]]
     _libraries: List[Library]
     _library_manager: LibraryManager
 
-    def __init__(self, library_manager: LibraryManager, *args: Any, **kwargs: Any):
+    def __init__(
+        self,
+        library_manager: LibraryManager,
+        backend_tabs: Tuple[Type["BackendTab"]],
+        *args: Any,
+        **kwargs: Any
+    ):
 
         super().__init__(*args, **kwargs)
 
+        self._backend_tabs = backend_tabs
         self._library_manager = library_manager
 
         self._libraries = []
@@ -42,7 +52,16 @@ class LibrariesModel(QStandardItemModel):
             item.setEditable(False)
             row.append(item)
 
-            item = QStandardItem(cast(Backend, lib.getBackend()).getName())
+            tab: Optional[Type["BackendTab"]] = next(
+                (t for t in self._backend_tabs if t.matchesPath(lib.getPath())),
+                None,
+            )
+
+            if tab:
+                item = QStandardItem(tab.getName())
+            else:
+                item = QStandardItem("Unknown")
+
             item.setEditable(False)
             row.append(item)
 

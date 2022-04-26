@@ -7,8 +7,6 @@ from json.decoder import JSONDecodeError
 from typing import Any, Dict, List, Optional, TextIO, Type, TypeVar, Union, cast
 
 import utils
-from backend import Backend
-from backends import Backends
 from configuration_manager import ConfigurationManager
 
 from .book import Book
@@ -20,21 +18,21 @@ T = TypeVar("T", bound="Library")
 
 class Library:
 
-    _backend: Optional[Backend]
     _books: Dict[str, Book]
     _name: str
     _naming_scheme: Optional[NamingScheme]
+    _path: str
     _tree: Node
     _uuid: uuid.UUID
 
     def __init__(self) -> None:
 
-        self._backend = None
         self._books = {}
         self._uuid = uuid.uuid4()
         self._name = ""
         self._naming_scheme = None
         self._tree = Node()
+        self._path = ""
 
     @classmethod
     def fromFile(cls: Type[T], file: str) -> Optional[T]:
@@ -57,24 +55,11 @@ class Library:
 
         return l
 
-    def getBackend(self) -> Optional[Backend]:
-        return self._backend
-
-    def setBackend(self, backend: Backend) -> None:
-        self._backend = backend
-
-        if self._tree is not None:
-            self._tree.setBackend(self._backend)
-
-        if self._name == "":
-            self._name = backend.getPath()
-
     def serialize(self) -> Dict[str, Any]:
 
         return {
             "name": self._name,
-            "backendName": cast(Backend, self._backend).getName(),
-            "backend": cast(Backend, self._backend).serialize(),
+            "path": self._path,
             "uuid": str(self._uuid),
             "tree": cast(Node, self._tree).serialize(),
             "books": [b.serialize() for b in self._books.values()],
@@ -83,30 +68,9 @@ class Library:
 
     def deserialize(self, serialized: Dict[str, Any]) -> None:
 
-        b: Type[Backend]
-        name: str = serialized.get("backendName", "")
-
-        backend: Optional[Backend] = None
-
-        for b in Backends:
-            if b.getName() == name:
-                backend = b()
-                break
-
-        if not backend:
-            raise IOError("backend with name {name} not found".format(name=name))
-
-        ser: Dict[str, Any] = serialized.get("backend", {})
-
-        if not ser:
-            raise IOError("no backend data supplied")
-
-        backend.deserialize(ser)
-
-        self._backend = backend
-        self._tree.setBackend(self._backend)
         self._uuid = uuid.UUID(serialized.get("uuid", ""))
         self._name = serialized.get("name", "")
+        self._path = serialized.get("path", "")
 
         tree: Dict[str, Any] = serialized.get("tree", {})
 
@@ -159,6 +123,12 @@ class Library:
 
     def setName(self, name: str) -> None:
         self._name = name
+
+    def getPath(self) -> str:
+        return self._path
+
+    def setPath(self, path: str) -> None:
+        self._path = path
 
     def getTree(self) -> Node:
         return self._tree

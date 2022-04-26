@@ -1,13 +1,9 @@
-import os.path
 from typing import Optional
 
+from Bass4Py.bass import BASS, OutputDevice
 from PyQt5.QtCore import QObject, QThread
 
 from workers.playback_worker import PlaybackWorker
-
-os.add_dll_directory(os.getcwd())
-
-from Bass4Py.bass import BASS, OutputDevice  # noqa: E402
 
 
 class AudioManager(QObject):
@@ -26,8 +22,8 @@ class AudioManager(QObject):
 
     def initialize(self) -> None:
 
-        self._device = self._bass.GetOutputDevice(-1)
-        self._device.Init(44100, 0, -1)
+        self._device = self._bass.output_devices[-1]
+        self._device.init()
 
         self._worker = PlaybackWorker()
         self._worker_thread = QThread(parent=self)

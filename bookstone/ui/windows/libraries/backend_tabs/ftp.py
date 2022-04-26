@@ -1,15 +1,18 @@
-from typing import Any, cast
+import re
+import urllib.parse
+from typing import Any
 
 from PyQt5.QtGui import QIntValidator
 from PyQt5.QtWidgets import QCheckBox, QHBoxLayout, QLabel, QLineEdit
-
-from backend import Backend
-from backends.ftp import FTPBackend
 
 from ..backend_tab import BackendTab
 
 
 class FTPBackendTab(BackendTab):
+
+    _PATH_REGEX_ = re.compile(
+        r"(?P<protocol>ftps?)://((?P<username>.*(?=\:)):(?P<password>.*(?=@))@)?(?P<host>.*(?=[/\:]))(\:(?P<port>\d+))?(?P<path>.*)"
+    )
 
     ftps_checkbox: QCheckBox
     host_input: QLineEdit
@@ -22,15 +25,12 @@ class FTPBackendTab(BackendTab):
 
         super().__init__(*args, **kwargs)
 
-        if not self.backend:
-            self.backend = FTPBackend()
-
         layout: QHBoxLayout = QHBoxLayout(self)
 
         host_label: QLabel = QLabel("Host:", self)
         layout.addWidget(host_label)
 
-        self.host_input = QLineEdit(cast(FTPBackend, self.backend).getHost(), self)
+        self.host_input = QLineEdit(self)
         self.host_input.textChanged.connect(self.parent.updated.emit)
         host_label.setBuddy(self.host_input)
         layout.addWidget(self.host_input)
@@ -38,9 +38,7 @@ class FTPBackendTab(BackendTab):
         username_label: QLabel = QLabel("Username:", self)
         layout.addWidget(username_label)
 
-        self.username_input = QLineEdit(
-            cast(FTPBackend, self.backend).getUsername(), self
-        )
+        self.username_input = QLineEdit(self)
         self.username_input.textChanged.connect(self.parent.updated.emit)
         username_label.setBuddy(self.username_input)
         layout.addWidget(self.username_input)
@@ -48,9 +46,7 @@ class FTPBackendTab(BackendTab):
         password_label: QLabel = QLabel("Password:", self)
         layout.addWidget(password_label)
 
-        self.password_input = QLineEdit(
-            cast(FTPBackend, self.backend).getPassword(), self
-        )
+        self.password_input = QLineEdit(self)
         self.password_input.setEchoMode(QLineEdit.Password)
         self.password_input.textChanged.connect(self.parent.updated.emit)
         password_label.setBuddy(self.password_input)
@@ -59,7 +55,7 @@ class FTPBackendTab(BackendTab):
         port_label: QLabel = QLabel("Port:", self)
         layout.addWidget(port_label)
 
-        self.port_input = QLineEdit(str(cast(FTPBackend, self.backend).getPort()), self)
+        self.port_input = QLineEdit(self)
         self.port_input.setText(str(21))
         validator = QIntValidator(self)
         validator.setBottom(1)
@@ -70,30 +66,16 @@ class FTPBackendTab(BackendTab):
         path_label: QLabel = QLabel("Path:", self)
         layout.addWidget(path_label)
 
-        self.path_input = QLineEdit(self.backend.getPath(), self)
+        self.path_input = QLineEdit(self)
         self.path_input.setText("/")
         self.path_input.textChanged.connect(self.parent.updated.emit)
         path_label.setBuddy(self.path_input)
         layout.addWidget(self.path_input)
 
         self.ftps_checkbox = QCheckBox("FTPS", self)
-        self.ftps_checkbox.setChecked(cast(FTPBackend, self.backend).getFTPS())
         layout.addWidget(self.ftps_checkbox)
 
         self.setLayout(layout)
-
-    def getBackend(self) -> Backend:
-
-        b: FTPBackend = cast(FTPBackend, self.backend)
-
-        b.setPath(self.path_input.text())
-        b.setUsername(self.username_input.text())
-        b.setPassword(self.password_input.text())
-        b.setHost(self.host_input.text())
-        b.setPort(int(self.port_input.text()))
-        b.setFTPS(self.ftps_checkbox.isChecked())
-
-        return b
 
     def isValid(self) -> bool:
 
@@ -122,4 +104,61 @@ class FTPBackendTab(BackendTab):
 
     @staticmethod
     def getName() -> str:
-        return FTPBackend.getName()
+        return "FTP"
+
+    def getPath(self) -> str:
+
+        if not self.isValid():
+            return ""
+
+        protocol: str = "ftp"
+        credentials: str = ""
+        port: str = ""
+
+        if self.ftps_checkbox.isChecked():
+            protocol = "ftps"
+
+        if self.username_input.text() and self.password_input.text():
+            credentials = f"{urllib.parse.quote(self.username_input.text())}:{urllib.parse.quote(self.password_input.text())}@"
+
+        if self.port_input.text() and self.port_input.text() != "21":
+            port = f":{self.port_input.text()}"
+
+        return f"{protocol}://{credentials}{self.host_input.text()}{port}{self.path_input.text()}"
+
+    def setPath(self, path: str) -> None:
+
+        match = self._PATH_REGEX_.match(path)
+
+        if not match:
+            return
+
+        if match.group("protocol") == "ftps":
+            self.ftps_checkbox.blockSignals(True)
+            self.ftps_checkbox.setChecked(True)
+            self.ftps_checkbox.blockSignals(False)
+
+        if match.group("username"):
+            self.username_input.blockSignals(True)
+            self.username_input.setText(urllib.parse.unquote(match.group("username")))
+            self.username_input.blockSignals(False)
+
+        if match.group("password"):
+            self.password_input.blockSignals(True)
+            self.password_input.setText(urllib.parse.unquote(match.group("password")))
+            self.password_input.blockSignals(False)
+
+        if match.group("host"):
+            self.host_input.blockSignals(True)
+            self.host_input.setText(match.group("host"))
+            self.host_input.blockSignals(False)
+
+        if match.group("port"):
+            self.port_input.blockSignals(True)
+            self.port_input.setText(match.group("port"))
+            self.port_input.blockSignals(False)
+
+        if match.group("path"):
+            self.path_input.blockSignals(True)
+            self.path_input.setText(match.group("path"))
+            self.path_input.blockSignals(False)

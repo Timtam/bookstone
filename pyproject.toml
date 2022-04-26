@@ -7,11 +7,12 @@ license = "MIT"
 
 [tool.poetry.dependencies]
 python = "^3.8"
-ftputil = "^5.0.3"
 natsort = "^8.1.0"
 PyQt5 = "^5.15.6"
-smbprotocol = "^1.9.0"
 dependency-injector = "^4.39.1"
+fs = "^2.4.15"
+"fs.webdavfs" = "^0.4.2"
+"fs.smbfs" = "^1.0.3"
 
 [tool.poetry.dev-dependencies]
 mypy = "^0.942"

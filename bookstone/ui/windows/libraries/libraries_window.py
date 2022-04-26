@@ -1,22 +1,21 @@
-from typing import Any, Callable, List, Type, cast
+from typing import Any, Callable, List, Optional, Tuple, Type, cast
 
 from PyQt5.QtCore import QEvent, QObject
 from PyQt5.QtGui import QContextMenuEvent
 from PyQt5.QtWidgets import QAction, QLabel, QMenu, QPushButton, QTableView, QVBoxLayout
 
-from backend import Backend
 from library.library import Library
 from library.manager import LibraryManager
 from ui.models.libraries import LibrariesModel
 from ui.window import Window
 
 from .backend_tab import BackendTab
-from .backend_tabs import BackendTabs
 from .details_dialog import DetailsDialog
 
 
 class LibrariesWindow(Window):
 
+    _backend_tabs: Tuple[Type[BackendTab]]
     _library_manager: LibraryManager
 
     add_button: QPushButton
@@ -31,12 +30,14 @@ class LibrariesWindow(Window):
         self,
         library_manager: LibraryManager,
         libraries_model: LibrariesModel,
+        backend_tabs: Tuple[Type[BackendTab]],
         *args: Any,
         **kwargs: Any,
     ):
 
         super().__init__(*args, **kwargs)
 
+        self._backend_tabs = backend_tabs
         self._library_manager = library_manager
 
         self.setWindowTitle("Bookstone - Libraries")
@@ -66,7 +67,7 @@ class LibrariesWindow(Window):
         i: int
         tab: Type[BackendTab]
 
-        for i, tab in enumerate(BackendTabs.values()):
+        for tab in self._backend_tabs:
             act: QAction = QAction(tab.getName(), self.add_menu)
             self.add_menu.addAction(act)
             self.add_actions.append(act)
@@ -75,7 +76,7 @@ class LibrariesWindow(Window):
         self.add_button.setMenu(self.add_menu)
 
         self.close_button = QPushButton("Close", self)
-        self.close_button.pressed.connect(self.close)  # type: ignore
+        self.close_button.pressed.connect(self.close)
         layout.addWidget(self.close_button)
 
         self.setLayout(layout)
@@ -107,9 +108,15 @@ class LibrariesWindow(Window):
 
     def editLibrary(self, lib: Library) -> None:
 
-        dlg: DetailsDialog = DetailsDialog(
-            BackendTabs[cast(Type[Backend], type(lib.getBackend()))], lib, self
+        tab: Optional[Type[BackendTab]] = next(
+            (t for t in self._backend_tabs if t.matchesPath(lib.getPath())),
+            None,
         )
+
+        if not tab:
+            return
+
+        dlg: DetailsDialog = DetailsDialog(tab, lib, self)
 
         success: int = dlg.exec_()
 
