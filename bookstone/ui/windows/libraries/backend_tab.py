@@ -1,6 +1,5 @@
-import re
 from abc import abstractmethod
-from typing import TYPE_CHECKING, Any, Type, TypeVar
+from typing import TYPE_CHECKING, Any, Pattern, Type, TypeVar
 
 from PyQt5.QtWidgets import QWidget
 
@@ -13,7 +12,7 @@ T = TypeVar("T", bound="BackendTab")
 
 class BackendTab(QWidget):
 
-    _PATH_REGEX_: re.Pattern
+    _PATH_REGEX_: Pattern[str]
 
     parent: "DetailsDialog"
 

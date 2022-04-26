@@ -1,6 +1,6 @@
 import pathlib
 import uuid
-from typing import Any, Dict, Optional, Union, cast
+from typing import Any, Dict, Optional, Union
 
 from .tag_collection import TagCollection
 
@@ -59,12 +59,9 @@ class Book:
     def __eq__(self, book: Any) -> bool:
 
         if isinstance(book, Book):
-            return (
-                self._path == cast(Book, book)._path
-                and self._tags == cast(Book, book)._tags
-            )
+            return self._path == book._path and self._tags == book._tags
         elif isinstance(book, str):
-            return self._path == book
+            return str(self._path) == book
 
         return NotImplemented
 

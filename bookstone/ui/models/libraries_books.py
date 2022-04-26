@@ -133,15 +133,14 @@ class LibrariesBooksTreeItem:
             isinstance(other, Library)
             and self._type == LibrariesBooksTreeItemType.library
         ):
-            return cast(Library, self._data).uuid == cast(Library, other).uuid
+            return cast(Library, self._data).uuid == other.uuid
         elif isinstance(other, Book) and self._type == LibrariesBooksTreeItemType.book:
-            return cast(Book, self._data).uuid == cast(Book, other).uuid
+            return cast(Book, self._data).uuid == other.uuid
         elif isinstance(other, LibrariesBooksTreeItem):
             return (
                 self._type == LibrariesBooksTreeItemType.root
-                and cast(LibrariesBooksTreeItem, other)._type
-                == LibrariesBooksTreeItemType.root
-            ) or self == cast(LibrariesBooksTreeItem, other)._data
+                and other._type == LibrariesBooksTreeItemType.root
+            ) or self == other._data
 
         return NotImplemented
 

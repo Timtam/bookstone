@@ -25,5 +25,5 @@ class SettingsWindow(Window):
         layout.addWidget(self.tabs)
 
         self.ok_button = QPushButton("OK", self)
-        self.ok_button.pressed.connect(self.close)  # type: ignore
+        self.ok_button.pressed.connect(self.close)
         layout.addWidget(self.ok_button)

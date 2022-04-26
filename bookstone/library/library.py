@@ -61,7 +61,7 @@ class Library:
             "name": self._name,
             "path": self._path,
             "uuid": str(self._uuid),
-            "tree": cast(Node, self._tree).serialize(),
+            "tree": self._tree.serialize(),
             "books": [b.serialize() for b in self._books.values()],
             "naming_scheme": cast(NamingScheme, self._naming_scheme).name,
         }
@@ -166,11 +166,11 @@ class Library:
     def findBook(self, book: Union[Book, str, pathlib.Path]) -> Optional[Book]:
 
         if isinstance(book, Book):
-            return self._books.get(cast(Book, book).path.as_posix(), None)
+            return self._books.get(book.path.as_posix(), None)
         elif isinstance(book, str):
-            return self._books.get(cast(str, book), None)
+            return self._books.get(book, None)
         elif isinstance(book, pathlib.Path):
-            return self._books.get(cast(pathlib.Path, book).as_posix(), None)
+            return self._books.get(book.as_posix(), None)
 
         return None
 

@@ -1,5 +1,5 @@
 import re
-from typing import Any, List, Type, cast
+from typing import Any, List, Pattern, Type, cast
 
 import fs
 from PyQt5.QtCore import Qt, pyqtSignal
@@ -137,7 +137,7 @@ class DetailsDialog(QDialog):
 
         self.button_box.button(QDialogButtonBox.Ok).setEnabled(valid)
 
-        regex: re.Pattern = re.compile(
+        regex: Pattern[str] = re.compile(
             r"^(?:\w+://)((?P<username>.*(?=\:)):(?:.*(?=@))@)?(?P<host>.*(?=[\:/]))(\:(?P<port>\d+))?(?P<path>.*)$"
         )
         name = ""

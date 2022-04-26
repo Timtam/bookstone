@@ -1,6 +1,6 @@
 import re
 import string
-from typing import Any, Dict, Iterable, List, Optional, Tuple, cast
+from typing import Any, Dict, Iterable, List, Optional, Pattern, Tuple, cast
 
 from .tag import Tag
 from .tag_collection import TagCollection
@@ -14,7 +14,7 @@ class NamingSchemeEntry:
     _pattern: str
 
     # the compiled regex pattern for the above pattern
-    _regex_pattern: re.Pattern
+    _regex_pattern: Pattern[str]
 
     def __init__(self, pattern: str) -> None:
 

@@ -1,5 +1,5 @@
 import copy
-from typing import Any, cast
+from typing import Any
 
 
 class Tag:
@@ -44,10 +44,7 @@ class Tag:
     def __eq__(self, other: Any) -> bool:
 
         if isinstance(other, Tag):
-            return (
-                self._name == cast(Tag, other)._name
-                and self.value == cast(Tag, other).value
-            )
+            return self._name == other._name and self.value == other.value
         elif isinstance(other, str):
             return self._name == other
 

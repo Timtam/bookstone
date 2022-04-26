@@ -56,7 +56,7 @@ class MainWindow(Window):
         self.file_menu.addAction(act)
 
         act = QAction("&Exit", self.file_menu)
-        act.triggered.connect(self.close)  # type: ignore
+        act.triggered.connect(self.close)
         self.file_menu.addAction(act)
 
         layout: QVBoxLayout = QVBoxLayout(self)
@@ -75,7 +75,7 @@ class MainWindow(Window):
         self._library_manager.startIndexing()
 
     def showLibrariesWindow(self) -> None:
-        def update():
+        def update() -> None:
             self.libraries_model.update(self._library_manager.getLibraries())
 
         window: LibrariesWindow = self._libraries_window_factory()

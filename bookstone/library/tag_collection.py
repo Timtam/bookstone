@@ -1,11 +1,19 @@
 from collections import UserDict
-from typing import Any, Dict, cast
+from typing import TYPE_CHECKING, Any, Dict
 
 from .tag import Tag
 from .tags import Tags
 
+if TYPE_CHECKING:
 
-class TagCollection(UserDict):
+    _Base = UserDict[str, Tag]
+
+else:
+
+    _Base = UserDict
+
+
+class TagCollection(_Base):
     def __init__(self) -> None:
 
         super().__init__()
@@ -15,7 +23,7 @@ class TagCollection(UserDict):
         for tag in Tags:
             self.add(tag())
 
-    def __delitem__(self, idx: int) -> None:
+    def __delitem__(self, name: str) -> None:
         raise IndexError("you cannot remove tags")
 
     def add(self, tag: Tag) -> None:
@@ -54,7 +62,7 @@ class TagCollection(UserDict):
             name: str
             tag: Tag
 
-            for name, tag in cast(TagCollection, tags).items():
+            for name, tag in tags.items():
 
                 if self.get(name, None) != tag:
                     return False

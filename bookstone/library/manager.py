@@ -32,7 +32,7 @@ class LibraryManager(QObject):
         self._libraries.append(lib)
 
     def getLibraries(self) -> List[Library]:
-        def key(lib: Library):
+        def key(lib: Library) -> str:
             return lib.uuid
 
         return natsort.natsorted(self._libraries[:], key=key)
@@ -147,11 +147,11 @@ class LibraryManager(QObject):
 
             while parent:
 
-                cast(Node, parent).removeChild(current)
+                parent.removeChild(current)
 
                 if sum(1 for child in parent.iterChildren(dirs=False)) == 0:
                     current = parent
-                    parent = cast(Node, parent).getParent()
+                    parent = parent.getParent()
                 else:
                     parent = None
 
