@@ -91,7 +91,7 @@ class LibrariesBooksTreeItem:
             "Title",
             "Author",
             "Series",
-            "Number",
+            "Entry",
         )
 
     def getColumnText(self, column: int) -> str:
@@ -110,8 +110,8 @@ class LibrariesBooksTreeItem:
                     return cast(Book, self._data).tags["series"].value
         elif column == 3:
             if self._type == LibrariesBooksTreeItemType.book:
-                if cast(Book, self._data).tags["number"].isModified():
-                    return cast(Book, self._data).tags["number"].value
+                if cast(Book, self._data).tags["entry"].isModified():
+                    return cast(Book, self._data).tags["entry"].value
 
         return ""
 
