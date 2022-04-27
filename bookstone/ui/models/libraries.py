@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Any, List, Optional, Tuple, Type
 
+from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QStandardItem, QStandardItemModel
 
 from library.library import Library
@@ -14,6 +15,7 @@ class LibrariesModel(QStandardItemModel):
     _backend_tabs: Tuple[Type["BackendTab"]]
     _libraries: List[Library]
     _library_manager: LibraryManager
+    _library_status_timer: QTimer
 
     def __init__(
         self,
@@ -30,6 +32,11 @@ class LibrariesModel(QStandardItemModel):
 
         self._libraries = []
 
+        self._library_status_timer = QTimer()
+        self._library_status_timer.setInterval(1000)
+        self._library_status_timer.timeout.connect(self._update_library_status)
+        self._library_status_timer.start()
+
         self.reloadLibraries()
 
     def reloadLibraries(self) -> None:
@@ -38,8 +45,8 @@ class LibrariesModel(QStandardItemModel):
 
         self.clear()
 
-        self.setColumnCount(2)
-        self.setHorizontalHeaderLabels(["Name", "Connection"])
+        self.setColumnCount(3)
+        self.setHorizontalHeaderLabels(["Name", "Connection", "Status"])
 
         self._libraries = self._library_manager.getLibraries()
 
@@ -65,6 +72,10 @@ class LibrariesModel(QStandardItemModel):
             item.setEditable(False)
             row.append(item)
 
+            item = QStandardItem(self._library_manager.getIndexingStatus(lib) or "Idle")
+            item.setEditable(False)
+            row.append(item)
+
             self.appendRow(row)
 
     def updateLibrary(self, lib: Library) -> None:
@@ -72,4 +83,17 @@ class LibrariesModel(QStandardItemModel):
         index: int = self._libraries.index(lib)
 
         item: QStandardItem = self.item(index, 0)
-        item.setText(lib.getName())
+        if item.text() != lib.getName():
+            item.setText(lib.getName())
+
+        item = self.item(index, 2)
+
+        status = self._library_manager.getIndexingStatus(lib) or "Idle."
+
+        if item.text() != status:
+            item.setText(status)
+
+    def _update_library_status(self) -> None:
+
+        for lib in self._libraries:
+            self.updateLibrary(lib)
