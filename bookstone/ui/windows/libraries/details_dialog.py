@@ -1,5 +1,5 @@
 import re
-from typing import Any, List, Pattern, Type, cast
+from typing import Any, Pattern, Type, cast
 
 import fs
 from PyQt5.QtCore import Qt, pyqtSignal
@@ -10,15 +10,11 @@ from PyQt5.QtWidgets import (
     QLabel,
     QLineEdit,
     QMessageBox,
-    QTableView,
     QTabWidget,
     QWidget,
 )
 
-from configuration_manager import ConfigurationManager
 from library.library import Library
-from library.naming_scheme import NamingScheme
-from ui.models.naming_schemes import NamingSchemesModel
 
 from .backend_tab import BackendTab
 
@@ -31,8 +27,6 @@ class DetailsDialog(QDialog):
     library: Library
     name_input: QLineEdit
     name_input_was_edited: bool
-    naming_schemes_list: QTableView
-    naming_schemes_model: NamingSchemesModel
     tabs: QTabWidget
     updated: pyqtSignal = pyqtSignal()
 
@@ -63,25 +57,6 @@ class DetailsDialog(QDialog):
         self.name_input.textEdited.connect(self.setNameInputWasEdited)
         name_label.setBuddy(self.name_input)
         general_layout.addWidget(self.name_input)
-
-        naming_schemes_label: QLabel = QLabel("Naming scheme:", self.general_tab)
-        general_layout.addWidget(naming_schemes_label)
-
-        self.naming_schemes_list = QTableView(self.general_tab)
-        self.naming_schemes_list.setTabKeyNavigation(False)
-        self.naming_schemes_model = NamingSchemesModel()
-        self.naming_schemes_list.setModel(self.naming_schemes_model)
-        self.naming_schemes_list.setSelectionMode(QTableView.SingleSelection)
-        self.naming_schemes_list.setSelectionBehavior(QTableView.SelectRows)
-        self.naming_schemes_list.selectRow(
-            0
-            if not self.library.getNamingScheme()
-            else cast(List[NamingScheme], ConfigurationManager().namingSchemes).index(
-                cast(NamingScheme, self.library.getNamingScheme())
-            )
-        )
-        naming_schemes_label.setBuddy(self.naming_schemes_list)
-        general_layout.addWidget(self.naming_schemes_list)
 
         self.general_tab.setLayout(general_layout)
 
@@ -125,11 +100,7 @@ class DetailsDialog(QDialog):
             return False
 
     def isValid(self) -> bool:
-        return (
-            self.name_input.text() != ""
-            and self.naming_schemes_list.selectionModel().hasSelection()
-            and self.backend_tab.isValid()
-        )
+        return self.name_input.text() != "" and self.backend_tab.isValid()
 
     def handleUpdated(self) -> None:
 
@@ -168,20 +139,6 @@ class DetailsDialog(QDialog):
 
         self.library.setPath(self.backend_tab.getPath())
         self.library.setName(self.name_input.text())
-
-        # resolving naming scheme selection
-
-        indices: List[int] = [
-            m.row() for m in self.naming_schemes_list.selectionModel().selectedRows()
-        ]
-
-        assert len(indices) == 1
-
-        scheme: NamingScheme = cast(
-            List[NamingScheme], ConfigurationManager().namingSchemes
-        )[indices[0]]
-
-        self.library.setNamingScheme(scheme)
 
         return super().accept()
 

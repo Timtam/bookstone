@@ -4,13 +4,11 @@ import pathlib
 import uuid
 import warnings
 from json.decoder import JSONDecodeError
-from typing import Any, Dict, List, Optional, TextIO, Type, TypeVar, Union, cast
+from typing import Any, Dict, List, Optional, TextIO, Type, TypeVar, Union
 
 import utils
-from configuration_manager import ConfigurationManager
 
 from .book import Book
-from .naming_scheme import NamingScheme
 from .node import Node
 
 T = TypeVar("T", bound="Library")
@@ -20,7 +18,6 @@ class Library:
 
     _books: Dict[str, Book]
     _name: str
-    _naming_scheme: Optional[NamingScheme]
     _path: str
     _tree: Node
     _uuid: uuid.UUID
@@ -30,7 +27,6 @@ class Library:
         self._books = {}
         self._uuid = uuid.uuid4()
         self._name = ""
-        self._naming_scheme = None
         self._tree = Node()
         self._path = ""
 
@@ -63,7 +59,6 @@ class Library:
             "uuid": str(self._uuid),
             "tree": self._tree.serialize(),
             "books": [b.serialize() for b in self._books.values()],
-            "naming_scheme": cast(NamingScheme, self._naming_scheme).name,
         }
 
     def deserialize(self, serialized: Dict[str, Any]) -> None:
@@ -86,26 +81,6 @@ class Library:
             book_obj.deserialize(book)
 
             self._books[book_obj.path.as_posix()] = book_obj
-
-        scheme_s: str = serialized.get("naming_scheme", "")
-
-        if not scheme_s:
-
-            warnings.warn(
-                f"library '{self._name}' has no naming scheme. Will use the default naming scheme instead."
-            )
-
-            self._naming_scheme = cast(
-                List[NamingScheme], ConfigurationManager().namingSchemes
-            )[0]
-
-        else:
-
-            scheme_idx: int = cast(List[NamingScheme], ConfigurationManager().namingSchemes).index(scheme_s)  # type: ignore
-
-            self._naming_scheme = cast(
-                List[NamingScheme], ConfigurationManager().namingSchemes
-            )[scheme_idx]
 
     @property
     def uuid(self) -> str:
@@ -135,12 +110,6 @@ class Library:
 
     def getBooks(self) -> List[Book]:
         return list(self._books.values())
-
-    def getNamingScheme(self) -> Optional[NamingScheme]:
-        return self._naming_scheme
-
-    def setNamingScheme(self, scheme: NamingScheme) -> None:
-        self._naming_scheme = scheme
 
     def save(self) -> None:
 

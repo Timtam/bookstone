@@ -1,7 +1,8 @@
 import os.path
 import queue
+import warnings
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict, List, Optional, cast
+from typing import TYPE_CHECKING, Dict, List, Optional, Pattern
 
 import fs
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
@@ -9,9 +10,9 @@ from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 from exceptions import ThreadStoppedError
 from library.book import Book
 from library.library import Library
-from library.naming_scheme import NamingScheme
 from library.node import Node
 from library.tag_collection import TagCollection
+from library.tag_matching import Patterns, getPatternDepth, matchPattern
 from utils import getSupportedFileExtensions
 
 if TYPE_CHECKING:
@@ -107,35 +108,27 @@ class LibraryIndexingWorker(QObject):
 
         book_map: Dict[Book, Node] = {}
         book: Book
+        i: int
         match: Optional[TagCollection]
         next: Node
-        ns: NamingScheme = cast(NamingScheme, lib.getNamingScheme())
+        pattern: Pattern[str]
 
-        # process all volumes
+        for pattern in Patterns:
 
-        for next in tree.iterChildren(
-            depth=ns.getDepth(ns.volume.getPattern()), files=False
-        ):
+            for next in tree.iterChildren(depth=getPatternDepth(pattern), files=False):
 
-            match = ns.volume.match(next.getPath().as_posix())
+                if next in book_map.values():
+                    warnings.warn(
+                        "path was matched multiple times, will use first match only"
+                    )
+                    continue
 
-            if match:
-                book = Book(next.getPath(), match)
+                match = matchPattern(pattern, next.getPath().as_posix())
 
-                book_map[book] = next
+                if match:
+                    book = Book(next.getPath(), match)
 
-        # process all standalones
-
-        for next in tree.iterChildren(
-            depth=ns.getDepth(ns.standalone.getPattern()), files=False
-        ):
-
-            match = ns.standalone.match(next.getPath().as_posix())
-
-            if match:
-                book = Book(next.getPath(), match)
-
-                book_map[book] = next
+                    book_map[book] = next
 
         # iterate over all books in the dict
         # if the book is already part of the tree of another book, remove it
@@ -144,7 +137,7 @@ class LibraryIndexingWorker(QObject):
 
         books: List[Book] = list(book_map.keys())
         book_nodes: List[Node] = list(book_map.values())
-        i: int = 0
+        i = 0
         j: int = 0
 
         while i < len(book_map):

@@ -6,5 +6,6 @@ Tags: Tuple[Tag, ...] = (
     Tag("author", "Unknown Author"),
     Tag("title", "Unknown Title"),
     Tag("series", "Unknown Series"),
-    Tag("number", "00"),
+    Tag("entry", "00"),
+    Tag("subtitle", "Unknown Subtitle"),
 )
