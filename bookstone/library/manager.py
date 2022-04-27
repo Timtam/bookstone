@@ -1,6 +1,7 @@
 import os
 import os.path
-from typing import Dict, List, Optional, Tuple, cast
+from dataclasses import dataclass
+from typing import Dict, List, Optional, cast
 
 import natsort
 from PyQt5.QtCore import QObject, QThread
@@ -12,20 +13,30 @@ from .book import Book
 from .library import Library
 from .node import Node
 
+# stores all indexing state related information
+
+
+@dataclass
+class IndexingState:
+    thread: QThread
+    worker: LibraryIndexingWorker
+    last_status: str = "Waiting."
+
+
 # keeps track of all libraries
 # it also manages the indexing process
 
 
 class LibraryManager(QObject):
 
-    _indexing_state: Dict[Library, Tuple[LibraryIndexingWorker, QThread]]
+    _indexing_states: Dict[Library, IndexingState]
     _libraries: List[Library]
 
     def __init__(self) -> None:
 
         super().__init__()
 
-        self._indexing_state = {}
+        self._indexing_states = {}
         self._libraries = []
 
     def addLibrary(self, lib: Library) -> None:
@@ -41,11 +52,11 @@ class LibraryManager(QObject):
 
         i: int = self._libraries.index(lib)
 
-        if lib in self._indexing_state:
-            self._indexing_state[lib][1].requestInterruption()
-            self._indexing_state[lib][1].quit()
-            self._indexing_state[lib][1].wait()
-            del self._indexing_state[lib]
+        if lib in self._indexing_states:
+            self._indexing_states[lib].thread.requestInterruption()
+            self._indexing_states[lib].thread.quit()
+            self._indexing_states[lib].thread.wait()
+            del self._indexing_states[lib]
 
         if os.path.exists(lib.getFileName()):
             os.remove(lib.getFileName())
@@ -68,13 +79,18 @@ class LibraryManager(QObject):
             if l:
                 self._libraries.append(l)
 
-    def startIndexing(self) -> None:
+    def startIndexing(self, lib: Optional[Library] = None) -> None:
 
-        lib: Library
+        libs: List[Library]
 
-        for lib in self._libraries:
+        if lib:
+            libs = [lib]
+        else:
+            libs = self._libraries
 
-            if lib in self._indexing_state:
+        for lib in libs:
+
+            if lib in self._indexing_states:
                 continue
 
             worker: LibraryIndexingWorker = LibraryIndexingWorker(lib)
@@ -88,17 +104,17 @@ class LibraryManager(QObject):
             thread.finished.connect(thread.deleteLater)
 
             worker.result.connect(self._receive_indexing_result)
-
-            self._indexing_state[lib] = (
-                worker,
-                thread,
+            worker.status.connect(
+                lambda msg: self._indexing_status(cast(Library, lib), msg)
             )
+
+            self._indexing_states[lib] = IndexingState(thread=thread, worker=worker)
 
             thread.start()
 
     def _receive_indexing_result(self, result: LibraryIndexingResult) -> None:
 
-        del self._indexing_state[result.library]
+        del self._indexing_states[result.library]
 
         lib: Library = result.library
 
@@ -174,15 +190,36 @@ class LibraryManager(QObject):
 
         lib.save()
 
-    def abortIndexing(self) -> None:
+    def abortIndexing(self, lib: Optional[Library] = None) -> None:
 
-        lib: Library
-        threads: Tuple[LibraryIndexingWorker, QThread]
+        libs: List[Library]
+        thread: QThread
 
-        for lib, threads in self._indexing_state.items():
+        if lib:
+            libs = [lib]
+        else:
+            libs = self._libraries
 
-            threads[1].requestInterruption()
-            threads[1].quit()
-            threads[1].wait()
+        for lib in libs:
 
-        self._indexing_state.clear()
+            if lib not in self._indexing_states:
+                continue
+
+            thread = self._indexing_states[lib].thread
+
+            thread.requestInterruption()
+            thread.quit()
+            thread.wait()
+
+            del self._indexing_states[lib]
+
+    def _indexing_status(self, lib: Library, msg: str) -> None:
+        self._indexing_states[lib].last_status = msg
+
+    def getIndexingStatus(self, lib: Library) -> Optional[str]:
+        if lib not in self._indexing_states:
+            return None
+        return self._indexing_states[lib].last_status
+
+    def isIndexing(self, lib: Library) -> bool:
+        return lib in self._indexing_states

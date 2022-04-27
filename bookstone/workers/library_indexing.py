@@ -32,6 +32,7 @@ class LibraryIndexingWorker(QObject):
     finished: pyqtSignal = pyqtSignal()
     library: Library
     result: pyqtSignal = pyqtSignal(LibraryIndexingResult)
+    status: pyqtSignal = pyqtSignal(str)
 
     def __init__(self, library: Library):
 
@@ -43,9 +44,13 @@ class LibraryIndexingWorker(QObject):
 
         try:
 
+            self.status.emit("Started.")
+
             tree: Node = self.indexFolderStructure(self.library)
 
             books: List[Book] = self.indexBooks(self.library, tree)
+
+            self.status.emit("Finished.")
 
             self.result.emit(
                 LibraryIndexingResult(library=self.library, tree=tree, books=books)
@@ -54,10 +59,12 @@ class LibraryIndexingWorker(QObject):
             self.finished.emit()
 
         except ThreadStoppedError:
+            self.status.emit("Aborted.")
             pass
 
     def indexFolderStructure(self, lib: Library) -> Node:
 
+        node_count: int = 0
         tree: Node = Node()
         tree.setDirectory()
 
@@ -80,6 +87,8 @@ class LibraryIndexingWorker(QObject):
 
                 for dir in dir_list:
 
+                    node_count += 1
+
                     new: Node = Node()
                     new.setName(dir)
 
@@ -101,6 +110,8 @@ class LibraryIndexingWorker(QObject):
 
                     if new.isDirectory():
                         open.put(new)
+
+                    self.status.emit(f"{node_count} nodes indexed.")
 
             return tree
 
