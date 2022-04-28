@@ -1,5 +1,5 @@
 import posixpath
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
+from typing import Any, Dict, Iterator, List, Optional, Union
 
 NODE_DIRECTORY = 0
 NODE_FILE = 1
@@ -272,7 +272,9 @@ class Node:
             return True
 
         try:
-            return bool(posixpath.relpath(child.getPath(), self.getPath()))
+            return not posixpath.relpath(child.getPath(), self.getPath()).startswith(
+                ".."
+            )
         except ValueError:
             return False
 
