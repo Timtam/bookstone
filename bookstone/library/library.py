@@ -1,6 +1,5 @@
 import json
 import os
-import pathlib
 import uuid
 import warnings
 from json.decoder import JSONDecodeError

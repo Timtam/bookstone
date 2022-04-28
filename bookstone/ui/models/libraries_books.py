@@ -18,20 +18,26 @@ class LibrariesBooksTreeItem:
 
     _children: List["LibrariesBooksTreeItem"]
     _parent: Optional["LibrariesBooksTreeItem"]
-    _data: Optional[Union[Library, Book]]
+    _library: Library
+    _book_path: str
     _type: LibrariesBooksTreeItemType
 
     def __init__(
         self,
         type: LibrariesBooksTreeItemType,
         parent: Optional["LibrariesBooksTreeItem"] = None,
-        data: Optional[Union[Library, Book]] = None,
+        library: Optional[Library] = None,
+        book_path: Optional[str] = None,
     ):
 
         self._type = type
         self._parent = parent
-        self._data = data
         self._children = []
+
+        if library:
+            self._library = library
+        if book_path is not None:
+            self._book_path = book_path
 
     @property
     def parent(self) -> Optional["LibrariesBooksTreeItem"]:
@@ -96,22 +102,32 @@ class LibrariesBooksTreeItem:
 
     def getColumnText(self, column: int) -> str:
 
+        book: Optional[Book]
+
         if column == 0:
             if self._type == LibrariesBooksTreeItemType.book:
-                return cast(Book, self._data).tags["title"].value
+                book = self._library.findBook(self._book_path)
+                return book.tags["title"].value if book else "Unknown Book"
             elif self._type == LibrariesBooksTreeItemType.library:
-                return cast(Library, self._data).getName()
+                return self._library.getName()
         elif column == 1:
             if self._type == LibrariesBooksTreeItemType.book:
-                return cast(Book, self._data).tags["author"].value
+                book = self._library.findBook(self._book_path)
+                return book.tags["author"].value if book else "Unknown Book"
         elif column == 2:
             if self._type == LibrariesBooksTreeItemType.book:
-                if cast(Book, self._data).tags["series"].isModified():
-                    return cast(Book, self._data).tags["series"].value
+                book = self._library.findBook(self._book_path)
+                if book and book.tags["series"].isModified():
+                    return book.tags["series"].value
+                elif not book:
+                    return "Unknown Book"
         elif column == 3:
             if self._type == LibrariesBooksTreeItemType.book:
-                if cast(Book, self._data).tags["entry"].isModified():
-                    return cast(Book, self._data).tags["entry"].value
+                book = self._library.findBook(self._book_path)
+                if book and book.tags["entry"].isModified():
+                    return book.tags["entry"].value
+                elif not book:
+                    return "Unknown Book"
 
         return ""
 
@@ -124,6 +140,7 @@ class LibrariesBooksTreeItem:
             [
                 f"{self.columnNames[c]}: {self.getColumnText(c)}"
                 for c in range(self.columnCount)
+                if self.getColumnText(c)
             ]
         )
 
@@ -133,14 +150,27 @@ class LibrariesBooksTreeItem:
             isinstance(other, Library)
             and self._type == LibrariesBooksTreeItemType.library
         ):
-            return cast(Library, self._data).uuid == other.uuid
+            return self._library.uuid == other.uuid
         elif isinstance(other, Book) and self._type == LibrariesBooksTreeItemType.book:
-            return cast(Book, self._data).uuid == other.uuid
+            return other == self._library.findBook(self._book_path)
         elif isinstance(other, LibrariesBooksTreeItem):
             return (
-                self._type == LibrariesBooksTreeItemType.root
-                and other._type == LibrariesBooksTreeItemType.root
-            ) or self == other._data
+                (
+                    self._type == LibrariesBooksTreeItemType.root
+                    and other._type == LibrariesBooksTreeItemType.root
+                )
+                or (
+                    self._type == LibrariesBooksTreeItemType.library
+                    and other._type == LibrariesBooksTreeItemType.library
+                    and self._library == other._library
+                )
+                or (
+                    self._type == LibrariesBooksTreeItemType.book
+                    and other._type == LibrariesBooksTreeItemType.book
+                    and self._library == other._library
+                    and self._book_path == other._book_path
+                )
+            )
 
         return NotImplemented
 
@@ -163,14 +193,17 @@ class LibrariesBooksModel(QAbstractItemModel):
         for lib in libs:
 
             lib_item = LibrariesBooksTreeItem(
-                type=LibrariesBooksTreeItemType.library, parent=self._root, data=lib
+                type=LibrariesBooksTreeItemType.library, parent=self._root, library=lib
             )
 
             self._root.insertChild(lib_item)
 
             for book in lib.getBooks():
                 book_item: LibrariesBooksTreeItem = LibrariesBooksTreeItem(
-                    type=LibrariesBooksTreeItemType.book, parent=lib_item, data=book
+                    type=LibrariesBooksTreeItemType.book,
+                    parent=lib_item,
+                    library=lib,
+                    book_path=book.path,
                 )
                 lib_item.insertChild(book_item)
 
