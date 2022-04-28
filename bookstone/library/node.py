@@ -85,7 +85,7 @@ class Node:
         while current:
 
             if current._name != "":
-                path = posixpath.join(current._name, path)
+                path = current._name + "/" + path
 
             current = current._parent
 
@@ -138,14 +138,14 @@ class Node:
         if isinstance(location, Node):
             location_path = location.getPath()
             try:
-                path = posixpath.relpath(location_path, self_path)
-
                 # if we're checking at root level and two nested folders are named exactly the same way
                 # the algorithm thinks that they are the same
                 # compare a Node abc with a Node abc fails, because they are called the same
                 # but we are meant to check for children only
                 if location_path == self_path:
                     path = location_path
+                else:
+                    path = posixpath.relpath(location_path, self_path)
             except ValueError:
                 if self_path == "":
                     path = location_path
@@ -266,17 +266,21 @@ class Node:
 
         self._size = size
 
-    def isParentOf(self, child: "Node") -> bool:
+    def isParentOf(self, child: Union["Node", str]) -> bool:
 
-        if self.getPath() == "":
+        path: str
+
+        if isinstance(child, str):
+            path = child
+        else:
+            path = child.getPath()
+
+        if self._name == "":
+            if path == "":
+                return False
             return True
 
-        try:
-            return not posixpath.relpath(child.getPath(), self.getPath()).startswith(
-                ".."
-            )
-        except ValueError:
-            return False
+        return path.startswith(self.getPath())
 
     def __eq__(self, node: Any) -> bool:
 

@@ -89,7 +89,7 @@ class LibraryIndexingWorker(QObject):
                     new: Node = Node()
                     new.setName(dir)
 
-                    if f.isdir(posixpath.join(next_path, dir)):
+                    if f.isdir(next_path + "/" + dir):
                         new.setDirectory()
                     else:
                         new.setFile()

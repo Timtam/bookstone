@@ -107,6 +107,9 @@ class Library:
     def getTree(self) -> Node:
         return self._tree
 
+    def setTree(self, tree: Node) -> None:
+        self._tree = tree
+
     def getBooks(self) -> List[Book]:
         return list(self._books.values())
 

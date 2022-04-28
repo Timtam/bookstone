@@ -117,59 +117,10 @@ class LibraryManager(QObject):
         del self._indexing_states[result.library]
 
         lib: Library = result.library
-
-        # comparing both trees
         new_tree: Node = result.tree
-        old_tree = lib.getTree()
-        current: Node
-        new: Node
-        path: List[Node] = []
-        parent: Optional[Node]
-        processed_nodes: List[Node] = []
 
-        for current in new_tree.iterChildren(dirs=False):
-
-            processed_nodes.append(current)
-
-            if not old_tree.findChild(current):
-
-                path.append(current)
-
-                while not old_tree.findChild(cast(Node, current.getParent())):
-
-                    new = Node()
-                    new.setName(cast(Node, current.getParent()).getName())
-                    new.setDirectory()
-
-                    path.append(new)
-                    current = cast(Node, current.getParent())
-
-                parent = old_tree.findChild(cast(Node, current.getParent()))
-
-                while len(path):
-
-                    new = path.pop()
-
-                    cast(Node, parent).addChild(new)
-                    parent = new
-
-        # all file nodes still within the tree, but not within the new tree, need to be dropped
-        for current in old_tree.iterChildren(dirs=False):
-
-            if current in processed_nodes:
-                continue
-
-            parent = current.getParent()
-
-            while parent:
-
-                parent.removeChild(current)
-
-                if sum(1 for child in parent.iterChildren(dirs=False)) == 0:
-                    current = parent
-                    parent = parent.getParent()
-                else:
-                    parent = None
+        # we will simply replace the old tree with the new one
+        lib.setTree(new_tree)
 
         # comparing new to old book analysis results
         books: List[Book] = result.books
@@ -178,7 +129,7 @@ class LibraryManager(QObject):
         # iterate over all books and remove books with missing paths
 
         for book in lib.getBooks():
-            if not old_tree.findChild(book.path):
+            if not new_tree.findChild(book.path):
                 lib.removeBook(book)
 
         # add all books not in the library
