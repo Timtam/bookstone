@@ -1,4 +1,5 @@
 import posixpath
+from datetime import datetime, timezone
 from typing import Any, Dict, Iterator, List, Optional, Union
 
 NODE_DIRECTORY = 0
@@ -8,7 +9,7 @@ NODE_FILE = 1
 class Node:
 
     _children: Dict[str, "Node"]
-    _modification_time: int
+    _modification_time: datetime
     _name: str
     _parent: Optional["Node"]
     _size: int
@@ -21,7 +22,7 @@ class Node:
         self._children = {}
         self._parent = parent
         self._size = -1
-        self._modification_time = -1
+        self._modification_time = datetime.fromtimestamp(0, timezone.utc)
 
     def setName(self, name: str) -> None:
         self._name = name
@@ -97,12 +98,12 @@ class Node:
         ser: Dict[str, Any] = {
             "name": self._name,
             "type": self._type,
+            "mtime": self._modification_time.isoformat(),
             "children": [],
         }
 
         if self.isFile():
             ser["size"] = self._size
-            ser["mtime"] = self._modification_time
 
         for child in self._children.values():
             ser["children"].append(child.serialize())
@@ -116,10 +117,12 @@ class Node:
         self.removeAllChildren()
         self._name = serialized.get("name", "")
         self._type = serialized.get("type", "")
+        self._modification_time = datetime.fromisoformat(
+            serialized.get("mtime", datetime.fromtimestamp(0, timezone.utc).isoformat())
+        )
 
         if self.isFile():
             self._size = serialized.get("size", -1)
-            self._modification_time = serialized.get("mtime", -1)
 
         children: List[Dict[str, Any]] = serialized.get("children", [])
 
@@ -154,6 +157,9 @@ class Node:
                     return None
         elif isinstance(location, str):
             path = location
+
+            if path.startswith("/"):
+                path = path[1:]
         else:
             raise NotImplementedError()
 
@@ -238,17 +244,11 @@ class Node:
 
         self._children.clear()
 
-    def getModificationTime(self) -> int:
-
-        if not self.isFile():
-            raise IOError("{node} is not a file".format(node=self))
+    def getModificationTime(self) -> datetime:
 
         return self._modification_time
 
-    def setModificationTime(self, time: int) -> None:
-
-        if not self.isFile():
-            raise IOError("{node} is not a file".format(node=self))
+    def setModificationTime(self, time: datetime) -> None:
 
         self._modification_time = time
 

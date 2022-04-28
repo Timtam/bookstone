@@ -2,6 +2,7 @@ import posixpath
 import queue
 import warnings
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Pattern
 
 import fs
@@ -61,7 +62,10 @@ class LibraryIndexingWorker(QObject):
 
     def indexFolderStructure(self, lib: Library) -> Node:
 
+        existing_node: Optional[Node]
         node_count: int = 0
+        old_tree: Node = lib.getTree()
+        scan: bool
         tree: Node = Node()
         tree.setDirectory()
 
@@ -85,12 +89,17 @@ class LibraryIndexingWorker(QObject):
                 for dir in dir_list:
 
                     node_count += 1
+                    scan = True
 
                     new: Node = Node()
                     new.setName(dir)
 
                     if f.isdir(next_path + "/" + dir):
                         new.setDirectory()
+                        new.setModificationTime(
+                            f.getmodified(next_path + "/" + dir)
+                            or (datetime.fromtimestamp(0, timezone.utc))
+                        )
                     else:
                         new.setFile()
 
@@ -103,12 +112,33 @@ class LibraryIndexingWorker(QObject):
                             del new
                             continue
 
-                    next.addChild(new)
+                        scan = False
 
                     if new.isDirectory():
+
+                        existing_node = old_tree.findChild(next_path + "/" + dir)
+
+                    if (
+                        new.isFile()  # files need to be added no matter what
+                        or (
+                            existing_node
+                            and new.getModificationTime()
+                            > existing_node.getModificationTime()  # only scan directories if modified lately
+                        )
+                        or not existing_node  # or if they didn't exist earlier
+                    ):
+
+                        next.addChild(new)
+
+                    else:
+
+                        next.addChild(existing_node)
+                        scan = False
+
+                    if scan:
                         open.put(new)
 
-                    self.status.emit(f"{node_count} nodes indexed.")
+                    self.status.emit(f"{node_count} new nodes indexed.")
 
             return tree
 
