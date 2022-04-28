@@ -178,7 +178,7 @@ class LibraryManager(QObject):
         # iterate over all books and remove books with missing paths
 
         for book in lib.getBooks():
-            if not old_tree.findChild(book.path.as_posix()):
+            if not old_tree.findChild(book.path):
                 lib.removeBook(book)
 
         # add all books not in the library

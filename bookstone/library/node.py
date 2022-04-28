@@ -1,5 +1,4 @@
-import os.path
-import pathlib
+import posixpath
 from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 NODE_DIRECTORY = 0
@@ -78,12 +77,19 @@ class Node:
     def isRoot(self) -> bool:
         return self._parent is None
 
-    def getPath(self) -> pathlib.Path:
+    def getPath(self) -> str:
 
-        if self._parent is None:
-            return pathlib.Path(self._name)
+        path: str = self._name
+        current: Optional["Node"] = self._parent
 
-        return self._parent.getPath() / self._name
+        while current:
+
+            if current._name != "":
+                path = posixpath.join(current._name, path)
+
+            current = current._parent
+
+        return path
 
     def serialize(self) -> Dict[str, Any]:
 
@@ -126,33 +132,35 @@ class Node:
 
     def findChild(self, location: Union["Node", str]) -> Optional["Node"]:
 
-        path: pathlib.Path
+        self_path = self.getPath()
+        path: str
 
         if isinstance(location, Node):
+            location_path = location.getPath()
             try:
-                path = location.getPath().relative_to(self.getPath())
+                path = posixpath.relpath(location_path, self_path)
 
                 # if we're checking at root level and two nested folders are named exactly the same way
                 # the algorithm thinks that they are the same
                 # compare a Node abc with a Node abc fails, because they are called the same
                 # but we are meant to check for children only
-                if location.getPath() == self.getPath():
-                    path = location.getPath()
+                if location_path == self_path:
+                    path = location_path
             except ValueError:
-                if self.getPath() == pathlib.Path(""):
-                    path = location.getPath()
+                if self_path == "":
+                    path = location_path
                 else:
                     # paths do not overlap -> child is not in that part of the tree
                     return None
         elif isinstance(location, str):
-            path = pathlib.Path(location)
+            path = location
         else:
             raise NotImplementedError()
 
-        if path == pathlib.Path(""):
+        if path == "":
             return self
 
-        parts: Tuple[str, ...] = path.parts
+        parts: List[str] = path.split("/")
         child_name: str = parts[0]
 
         child: Optional["Node"] = self._children.get(child_name, None)
@@ -161,7 +169,7 @@ class Node:
             if len(parts) == 1:
                 return child
             else:
-                return child.findChild(os.path.join(*parts[1:]))
+                return child.findChild(posixpath.join(*parts[1:]))
 
         return None
 
@@ -198,9 +206,9 @@ class Node:
         desc: str = "<"
 
         if self.isFile():
-            desc = desc + "File at " + self.getPath().as_posix()
+            desc = desc + "File at " + self.getPath()
         else:
-            desc = desc + "Directory at " + self.getPath().as_posix()
+            desc = desc + "Directory at " + self.getPath()
 
         desc = desc + ">"
 
@@ -260,11 +268,11 @@ class Node:
 
     def isParentOf(self, child: "Node") -> bool:
 
-        if self.getPath() == pathlib.Path(""):
+        if self.getPath() == "":
             return True
 
         try:
-            return child.getPath().relative_to(self.getPath()) is not None
+            return bool(posixpath.relpath(child.getPath(), self.getPath()))
         except ValueError:
             return False
 
@@ -273,6 +281,6 @@ class Node:
         if isinstance(node, Node):
             return self.getPath() == node.getPath()
         elif isinstance(node, str):
-            return self.getPath().as_posix() == node
+            return self.getPath() == node
 
         return NotImplemented

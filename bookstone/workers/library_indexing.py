@@ -1,8 +1,8 @@
-import os.path
+import posixpath
 import queue
 import warnings
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Dict, List, Optional, Pattern
+from typing import Dict, List, Optional, Pattern
 
 import fs
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
@@ -14,9 +14,6 @@ from library.node import Node
 from library.tag_collection import TagCollection
 from library.tag_matching import Patterns, getPatternDepth, matchPattern
 from utils import getSupportedFileExtensions
-
-if TYPE_CHECKING:
-    import pathlib.Path
 
 
 @dataclass
@@ -81,9 +78,9 @@ class LibraryIndexingWorker(QObject):
 
                 next: Node = open.get()
 
-                next_path: "pathlib.Path" = next.getPath()
+                next_path: str = next.getPath()
 
-                dir_list: List[str] = f.listdir(next_path.as_posix())
+                dir_list: List[str] = f.listdir(next_path)
 
                 for dir in dir_list:
 
@@ -92,7 +89,7 @@ class LibraryIndexingWorker(QObject):
                     new: Node = Node()
                     new.setName(dir)
 
-                    if f.isdir((next_path / dir).as_posix()):
+                    if f.isdir(posixpath.join(next_path, dir)):
                         new.setDirectory()
                     else:
                         new.setFile()
@@ -100,7 +97,7 @@ class LibraryIndexingWorker(QObject):
                     if new.isFile():
 
                         # check file extensions
-                        _, ext = os.path.splitext(new.getName())
+                        _, ext = posixpath.splitext(new.getName())
 
                         if not ext.lower() in getSupportedFileExtensions():
                             del new
@@ -134,7 +131,7 @@ class LibraryIndexingWorker(QObject):
                     )
                     continue
 
-                match = matchPattern(pattern, next.getPath().as_posix())
+                match = matchPattern(pattern, next.getPath())
 
                 if match:
                     book = Book(next.getPath(), match)

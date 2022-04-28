@@ -80,7 +80,7 @@ class Library:
             book_obj: Book = Book()
             book_obj.deserialize(book)
 
-            self._books[book_obj.path.as_posix()] = book_obj
+            self._books[book_obj.path] = book_obj
 
     @property
     def uuid(self) -> str:
@@ -130,21 +130,19 @@ class Library:
         return os.path.join(utils.getLibrariesDirectory(), str(self._uuid) + ".json")
 
     def addBook(self, book: Book) -> None:
-        self._books[book.path.as_posix()] = book
+        self._books[book.path] = book
 
-    def findBook(self, book: Union[Book, str, pathlib.Path]) -> Optional[Book]:
+    def findBook(self, book: Union[Book, str]) -> Optional[Book]:
 
         if isinstance(book, Book):
-            return self._books.get(book.path.as_posix(), None)
+            return self._books.get(book.path, None)
         elif isinstance(book, str):
             return self._books.get(book, None)
-        elif isinstance(book, pathlib.Path):
-            return self._books.get(book.as_posix(), None)
 
         return None
 
     def removeBook(self, book: Book) -> None:
-        del self._books[book.path.as_posix()]
+        del self._books[book.path]
 
     def __hash__(self) -> int:
         return self._uuid.int

@@ -1,4 +1,3 @@
-import pathlib
 import uuid
 from typing import Any, Dict, Optional, Union
 
@@ -7,33 +6,31 @@ from .tag_collection import TagCollection
 
 class Book:
 
-    _path: pathlib.Path
+    _path: str
     _tags: TagCollection
     _uuid: uuid.UUID
 
-    def __init__(
-        self, path: Union[pathlib.Path, str] = "", tags: Optional[TagCollection] = None
-    ) -> None:
+    def __init__(self, path: str = "", tags: Optional[TagCollection] = None) -> None:
 
         if isinstance(tags, TagCollection):
             self._tags = tags
         else:
             self._tags = TagCollection()
 
-        self.path = path  # type: ignore
+        self.path = path
         self._uuid = uuid.uuid4()
 
     def serialize(self) -> Dict[str, Any]:
 
         return {
             "tags": self._tags.serialize(),
-            "path": str(self._path),
+            "path": self._path,
             "uuid": str(self._uuid),
         }
 
     def deserialize(self, serialized: Dict[str, Any]) -> None:
 
-        self._path = pathlib.Path(serialized.get("path", ""))
+        self._path = serialized.get("path", "")
         self._uuid = uuid.UUID(serialized.get("uuid", str(self._uuid)))
 
         tags: Dict[str, str] = serialized.get("tags", {})
@@ -41,16 +38,13 @@ class Book:
         self._tags.deserialize(tags)
 
     @property
-    def path(self) -> pathlib.Path:
+    def path(self) -> str:
         return self._path
 
     @path.setter
-    def path(self, path: Union[pathlib.Path, str]) -> None:
+    def path(self, path: str) -> None:
 
-        if isinstance(path, str):
-            self._path = pathlib.Path(path)
-        else:
-            self._path = path
+        self._path = path
 
     @property
     def tags(self) -> TagCollection:
@@ -66,7 +60,7 @@ class Book:
         return NotImplemented
 
     def __str__(self) -> str:
-        return f"<Book tags={str(self.tags)}, path={self.path.as_posix()}>"
+        return f"<Book tags={str(self.tags)}, path={self._path}>"
 
     def __repr__(self) -> str:
         return str(self)
