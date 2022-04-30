@@ -11,9 +11,11 @@ from .grouped_books_item import GroupedBooksItem, GroupedBooksItemType
 groups: List[Group] = [
     Group(
         tag="author",
+        enabled=True,
     ),
     Group(
         tag="series",
+        enabled=True,
     ),
 ]
 
@@ -44,6 +46,8 @@ class GroupedBooksModel(QAbstractItemModel):
 
             return item
 
+        self.modelAboutToBeReset.emit()  # type: ignore
+
         for lib in libs:
 
             lib_item = GroupedBooksItem(
@@ -63,6 +67,8 @@ class GroupedBooksModel(QAbstractItemModel):
                     book_path=book.path,
                 )
                 parent.insertChild(book_item)
+
+        self.modelReset.emit()  # type: ignore
 
     def getItem(self, index: QModelIndex) -> GroupedBooksItem:
 
