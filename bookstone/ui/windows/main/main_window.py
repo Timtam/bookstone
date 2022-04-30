@@ -5,7 +5,7 @@ from PyQt5.QtWidgets import QAction, QLabel, QMenu, QMenuBar, QTreeView, QVBoxLa
 
 from library.manager import LibraryManager
 from ui.controller import WindowController
-from ui.models.libraries_books import LibrariesBooksModel
+from ui.models.grouped_books import GroupedBooksModel
 from ui.window import Window
 from ui.windows.libraries import LibrariesWindow
 from ui.windows.settings import SettingsWindow
@@ -19,7 +19,7 @@ class MainWindow(Window):
     _window_controller: WindowController
 
     file_menu: QMenu
-    libraries_model: LibrariesBooksModel
+    libraries_model: GroupedBooksModel
     libraries_view: QTreeView
     menu_bar: QMenuBar
 
@@ -63,7 +63,7 @@ class MainWindow(Window):
 
         libraries_view_label = QLabel("Books", self)
         layout.addWidget(libraries_view_label)
-        self.libraries_model = LibrariesBooksModel(self)
+        self.libraries_model = GroupedBooksModel(self)
 
         self.libraries_view = QTreeView(self)
         layout.addWidget(self.libraries_view)
