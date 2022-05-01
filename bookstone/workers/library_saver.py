@@ -27,9 +27,7 @@ class LibrarySaverWorker(QObject):
 
         with fs.open_fs("temp://bookstone") as temp_fs:
 
-            temp_file: IO[str] = temp_fs.open(
-                f"{self.library.uuid}.json", mode="w"
-            )
+            temp_file: IO[str] = temp_fs.open(f"{self.library.uuid}.json", mode="w")
 
             chunk_size: int = 1024 * 1024
             offset: int = 0

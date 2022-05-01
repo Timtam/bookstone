@@ -8,8 +8,7 @@ from library.manager import LibraryManager
 
 from .controller import WindowController
 from .models.libraries import LibrariesModel
-from .windows.libraries import LibrariesWindow
-from .windows.libraries.backend_tabs import BackendTabs
+from .windows.libraries import BackendTabs, LibrariesWindow
 from .windows.main import MainWindow
 from .windows.settings import SettingsWindow
 
@@ -35,7 +34,6 @@ class UIContainer(DeclarativeContainer):
         LibrariesWindow,
         library_manager=library_manager,
         libraries_model=libraries_model,
-        backend_tabs=backend_tabs,
     )
     main_window: Factory[MainWindow] = Factory(
         MainWindow,
