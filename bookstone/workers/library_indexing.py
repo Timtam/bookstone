@@ -21,7 +21,7 @@ from utils import getSupportedFileExtensions
 class LibraryIndexingResult:
 
     library: Library
-    tree: Node
+    tree: Optional[Node]
     books: List[Book]
 
 
@@ -44,7 +44,18 @@ class LibraryIndexingWorker(QObject):
 
             self.status.emit("Started.")
 
-            tree: Node = self.indexFolderStructure(self.library)
+            tree: Optional[Node] = self.indexFolderStructure(self.library)
+
+            if not tree:
+                self.status.emit("Failed.")
+
+                self.result.emit(
+                    LibraryIndexingResult(library=self.library, tree=None, books=[])
+                )
+
+                self.finished.emit()
+
+                return
 
             books: List[Book] = self.indexBooks(self.library, tree)
 
@@ -60,7 +71,7 @@ class LibraryIndexingWorker(QObject):
             self.status.emit("Aborted.")
             pass
 
-    def indexFolderStructure(self, lib: Library) -> Node:
+    def indexFolderStructure(self, lib: Library) -> Optional[Node]:
 
         existing_node: Optional[Node]
         node_count: int = 0
@@ -73,74 +84,79 @@ class LibraryIndexingWorker(QObject):
 
         open.put(tree)
 
-        with fs.open_fs(lib.getPath()) as f:
+        try:
 
-            while not open.empty():
+            with fs.open_fs(lib.getPath()) as f:
 
-                if QThread.currentThread().isInterruptionRequested():
-                    raise ThreadStoppedError()
+                while not open.empty():
 
-                next: Node = open.get()
+                    if QThread.currentThread().isInterruptionRequested():
+                        raise ThreadStoppedError()
 
-                next_path: str = next.getPath()
+                    next: Node = open.get()
 
-                dir_list: List[str] = f.listdir(next_path)
+                    next_path: str = next.getPath()
 
-                for dir in dir_list:
+                    dir_list: List[str] = f.listdir(next_path)
 
-                    node_count += 1
-                    scan = True
+                    for dir in dir_list:
 
-                    new: Node = Node()
-                    new.setName(dir)
+                        node_count += 1
+                        scan = True
 
-                    if f.isdir(next_path + "/" + dir):
-                        new.setDirectory()
-                        new.setModificationTime(
-                            f.getmodified(next_path + "/" + dir)
-                            or (datetime.fromtimestamp(0, timezone.utc))
-                        )
-                    else:
-                        new.setFile()
+                        new: Node = Node()
+                        new.setName(dir)
 
-                    if new.isFile():
+                        if f.isdir(next_path + "/" + dir):
+                            new.setDirectory()
+                            new.setModificationTime(
+                                f.getmodified(next_path + "/" + dir)
+                                or (datetime.fromtimestamp(0, timezone.utc))
+                            )
+                        else:
+                            new.setFile()
 
-                        # check file extensions
-                        _, ext = posixpath.splitext(new.getName())
+                        if new.isFile():
 
-                        if not ext.lower() in getSupportedFileExtensions():
-                            del new
-                            continue
+                            # check file extensions
+                            _, ext = posixpath.splitext(new.getName())
 
-                        scan = False
+                            if not ext.lower() in getSupportedFileExtensions():
+                                del new
+                                continue
 
-                    if new.isDirectory():
+                            scan = False
 
-                        existing_node = old_tree.findChild(next_path + "/" + dir)
+                        if new.isDirectory():
 
-                    if (
-                        new.isFile()  # files need to be added no matter what
-                        or (
-                            existing_node
-                            and new.getModificationTime()
-                            > existing_node.getModificationTime()  # only scan directories if modified lately
-                        )
-                        or not existing_node  # or if they didn't exist earlier
-                    ):
+                            existing_node = old_tree.findChild(next_path + "/" + dir)
 
-                        next.addChild(new)
+                        if (
+                            new.isFile()  # files need to be added no matter what
+                            or (
+                                existing_node
+                                and new.getModificationTime()
+                                > existing_node.getModificationTime()  # only scan directories if modified lately
+                            )
+                            or not existing_node  # or if they didn't exist earlier
+                        ):
 
-                    else:
+                            next.addChild(new)
 
-                        next.addChild(existing_node)
-                        scan = False
+                        else:
 
-                    if scan:
-                        open.put(new)
+                            next.addChild(existing_node)
+                            scan = False
 
-                    self.status.emit(f"{node_count} new nodes indexed.")
+                        if scan:
+                            open.put(new)
 
-            return tree
+                        self.status.emit(f"{node_count} new nodes indexed.")
+
+        except fs.errors.CreateFailed:
+            return None
+
+        return tree
 
     def indexBooks(self, lib: Library, tree: Node) -> List[Book]:
 

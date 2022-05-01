@@ -116,10 +116,15 @@ class LibraryManager(QObject):
     def _receive_indexing_result(self, result: LibraryIndexingResult) -> None:
 
         lib: Library = result.library
-        new_tree: Node = result.tree
+        new_tree: Node
 
         self._indexing_states[lib].thread = None
         self._indexing_states[lib].worker = None
+
+        if not result.tree:
+            return
+
+        new_tree = result.tree
 
         # we will simply replace the old tree with the new one
         lib.setTree(new_tree)
