@@ -3,7 +3,6 @@ import os.path
 from dataclasses import dataclass
 from typing import Dict, List, Optional, cast
 
-import natsort
 from PyQt5.QtCore import QObject, QThread
 
 from utils import getLibrariesDirectory
@@ -18,8 +17,8 @@ from .node import Node
 
 @dataclass
 class IndexingState:
-    thread: QThread
-    worker: LibraryIndexingWorker
+    thread: Optional[QThread]
+    worker: Optional[LibraryIndexingWorker]
     last_status: str = "Waiting."
 
 
@@ -41,21 +40,22 @@ class LibraryManager(QObject):
 
     def addLibrary(self, lib: Library) -> None:
         self._libraries.append(lib)
+        self._indexing_states[lib] = IndexingState(thread=None, worker=None)
 
     def getLibraries(self) -> List[Library]:
-        def key(lib: Library) -> str:
-            return lib.uuid
-
-        return natsort.natsorted(self._libraries[:], key=key)
+        return self._libraries[:]
 
     def removeLibrary(self, lib: Library) -> None:
 
         i: int = self._libraries.index(lib)
+        thread: QThread
 
         if lib in self._indexing_states:
-            self._indexing_states[lib].thread.requestInterruption()
-            self._indexing_states[lib].thread.quit()
-            self._indexing_states[lib].thread.wait()
+            if self._indexing_states[lib].thread:
+                thread = cast(QThread, self._indexing_states[lib].thread)
+                thread.requestInterruption()
+                thread.quit()
+                thread.wait()
             del self._indexing_states[lib]
 
         if os.path.exists(lib.getFileName()):
@@ -77,7 +77,7 @@ class LibraryManager(QObject):
             l: Optional[Library] = Library.fromFile(lib)
 
             if l:
-                self._libraries.append(l)
+                self.addLibrary(l)
 
     def startIndexing(self, lib: Optional[Library] = None) -> None:
 
@@ -90,7 +90,7 @@ class LibraryManager(QObject):
 
         for lib in libs:
 
-            if lib in self._indexing_states:
+            if self._indexing_states[lib].thread:
                 continue
 
             worker: LibraryIndexingWorker = LibraryIndexingWorker(lib)
@@ -108,16 +108,18 @@ class LibraryManager(QObject):
                 lambda msg: self._indexing_status(cast(Library, lib), msg)
             )
 
-            self._indexing_states[lib] = IndexingState(thread=thread, worker=worker)
+            self._indexing_states[lib].thread = thread
+            self._indexing_states[lib].worker = worker
 
             thread.start()
 
     def _receive_indexing_result(self, result: LibraryIndexingResult) -> None:
 
-        del self._indexing_states[result.library]
-
         lib: Library = result.library
         new_tree: Node = result.tree
+
+        self._indexing_states[lib].thread = None
+        self._indexing_states[lib].worker = None
 
         # we will simply replace the old tree with the new one
         lib.setTree(new_tree)
@@ -153,24 +155,23 @@ class LibraryManager(QObject):
 
         for lib in libs:
 
-            if lib not in self._indexing_states:
+            if not self._indexing_states[lib].thread:
                 continue
 
-            thread = self._indexing_states[lib].thread
+            thread = cast(QThread, self._indexing_states[lib].thread)
 
             thread.requestInterruption()
             thread.quit()
             thread.wait()
 
-            del self._indexing_states[lib]
+            self._indexing_states[lib].thread = None
+            self._indexing_states[lib].worker = None
 
     def _indexing_status(self, lib: Library, msg: str) -> None:
         self._indexing_states[lib].last_status = msg
 
-    def getIndexingStatus(self, lib: Library) -> Optional[str]:
-        if lib not in self._indexing_states:
-            return None
+    def getIndexingStatus(self, lib: Library) -> str:
         return self._indexing_states[lib].last_status
 
     def isIndexing(self, lib: Library) -> bool:
-        return lib in self._indexing_states
+        return self._indexing_states[lib].thread is not None
