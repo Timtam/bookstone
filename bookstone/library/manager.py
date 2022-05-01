@@ -1,12 +1,16 @@
+import json
 import os
 import os.path
+import warnings
 from dataclasses import dataclass
-from typing import Dict, List, Optional, cast
+from json.decoder import JSONDecodeError
+from typing import Any, Dict, List, Optional, TextIO, cast
 
 from PyQt5.QtCore import QObject, QThread
 
 from utils import getLibrariesDirectory
 from workers.library_indexing import LibraryIndexingResult, LibraryIndexingWorker
+from workers.library_saver import LibrarySaverWorker
 
 from .book import Book
 from .library import Library
@@ -16,10 +20,12 @@ from .node import Node
 
 
 @dataclass
-class IndexingState:
-    thread: Optional[QThread]
-    worker: Optional[LibraryIndexingWorker]
-    last_status: str = "Waiting."
+class LibraryState:
+    indexing_thread: Optional[QThread] = None
+    indexing_worker: Optional[LibraryIndexingWorker] = None
+    saver_thread: Optional[QThread] = None
+    saver_worker: Optional[LibrarySaverWorker] = None
+    last_indexing_status: str = "Waiting."
 
 
 # keeps track of all libraries
@@ -28,19 +34,19 @@ class IndexingState:
 
 class LibraryManager(QObject):
 
-    _indexing_states: Dict[Library, IndexingState]
+    _library_states: Dict[Library, LibraryState]
     _libraries: List[Library]
 
     def __init__(self) -> None:
 
         super().__init__()
 
-        self._indexing_states = {}
+        self._library_states = {}
         self._libraries = []
 
     def addLibrary(self, lib: Library) -> None:
         self._libraries.append(lib)
-        self._indexing_states[lib] = IndexingState(thread=None, worker=None)
+        self._library_states[lib] = LibraryState()
 
     def getLibraries(self) -> List[Library]:
         return self._libraries[:]
@@ -50,13 +56,18 @@ class LibraryManager(QObject):
         i: int = self._libraries.index(lib)
         thread: QThread
 
-        if lib in self._indexing_states:
-            if self._indexing_states[lib].thread:
-                thread = cast(QThread, self._indexing_states[lib].thread)
+        if lib in self._library_states:
+            if self._library_states[lib].indexing_thread:
+                thread = cast(QThread, self._library_states[lib].indexing_thread)
                 thread.requestInterruption()
                 thread.quit()
                 thread.wait()
-            del self._indexing_states[lib]
+            if self._library_states[lib].saver_thread:
+                thread = cast(QThread, self._library_states[lib].saver_thread)
+                thread.requestInterruption()
+                thread.quit()
+                thread.wait()
+            del self._library_states[lib]
 
         if os.path.exists(lib.getFileName()):
             os.remove(lib.getFileName())
@@ -74,10 +85,23 @@ class LibraryManager(QObject):
 
         for lib in libraries:
 
-            l: Optional[Library] = Library.fromFile(lib)
+            libfile: TextIO
+            libpath: str = os.path.join(getLibrariesDirectory(), lib)
 
-            if l:
-                self.addLibrary(l)
+            with open(libpath, "r") as libfile:
+
+                data: str = libfile.read()
+
+                try:
+                    ser: Dict[str, Any] = json.loads(data)
+                except JSONDecodeError:
+                    warnings.warn(f"invalid json data found in {libpath}")
+                    continue
+
+            l: Library = Library()
+            l.deserialize(ser)
+
+            self.addLibrary(l)
 
     def startIndexing(self, lib: Optional[Library] = None) -> None:
 
@@ -90,7 +114,7 @@ class LibraryManager(QObject):
 
         for lib in libs:
 
-            if self._indexing_states[lib].thread:
+            if self._library_states[lib].indexing_thread:
                 continue
 
             worker: LibraryIndexingWorker = LibraryIndexingWorker(lib)
@@ -108,8 +132,8 @@ class LibraryManager(QObject):
                 lambda msg: self._indexing_status(cast(Library, lib), msg)
             )
 
-            self._indexing_states[lib].thread = thread
-            self._indexing_states[lib].worker = worker
+            self._library_states[lib].indexing_thread = thread
+            self._library_states[lib].indexing_worker = worker
 
             thread.start()
 
@@ -118,8 +142,8 @@ class LibraryManager(QObject):
         lib: Library = result.library
         new_tree: Node
 
-        self._indexing_states[lib].thread = None
-        self._indexing_states[lib].worker = None
+        self._library_states[lib].indexing_thread = None
+        self._library_states[lib].indexing_worker = None
 
         if not result.tree:
             return
@@ -146,7 +170,7 @@ class LibraryManager(QObject):
             if not lib.findBook(book):
                 lib.addBook(book)
 
-        lib.save()
+        self.save(lib)
 
     def abortIndexing(self, lib: Optional[Library] = None) -> None:
 
@@ -160,23 +184,67 @@ class LibraryManager(QObject):
 
         for lib in libs:
 
-            if not self._indexing_states[lib].thread:
+            if not self._library_states[lib].indexing_thread:
                 continue
 
-            thread = cast(QThread, self._indexing_states[lib].thread)
+            thread = cast(QThread, self._library_states[lib].indexing_thread)
 
             thread.requestInterruption()
             thread.quit()
             thread.wait()
 
-            self._indexing_states[lib].thread = None
-            self._indexing_states[lib].worker = None
+            self._library_states[lib].indexing_thread = None
+            self._library_states[lib].indexing_worker = None
 
     def _indexing_status(self, lib: Library, msg: str) -> None:
-        self._indexing_states[lib].last_status = msg
+        self._library_states[lib].last_indexing_status = msg
 
     def getIndexingStatus(self, lib: Library) -> str:
-        return self._indexing_states[lib].last_status
+        return self._library_states[lib].last_indexing_status
 
     def isIndexing(self, lib: Library) -> bool:
-        return self._indexing_states[lib].thread is not None
+        return self._library_states[lib].indexing_thread is not None
+
+    def unload(self) -> None:
+
+        self.abortIndexing()
+
+        for lib in self._libraries:
+            if lib not in self._library_states:
+                continue
+
+            if self._library_states[lib].saver_thread:
+                thread = cast(QThread, self._library_states[lib].saver_thread)
+                thread.requestInterruption()
+                thread.quit()
+                thread.wait()
+
+                self._library_states[lib].saver_thread = None
+                self._library_states[lib].saver_worker = None
+
+    def save(self, lib: Library) -> None:
+
+        if self._library_states[lib].saver_thread:
+            return
+
+        worker: LibrarySaverWorker = LibrarySaverWorker(lib)
+        thread: QThread = QThread(parent=self)
+
+        worker.moveToThread(thread)
+
+        thread.started.connect(worker.run)
+        worker.finished.connect(thread.quit)
+        worker.finished.connect(worker.deleteLater)
+        thread.finished.connect(thread.deleteLater)
+
+        worker.finished.connect(lambda: self._saver_finished(lib))
+
+        self._library_states[lib].saver_thread = thread
+        self._library_states[lib].saver_worker = worker
+
+        thread.start()
+
+    def _saver_finished(self, lib: Library) -> None:
+
+        self._library_states[lib].saver_thread = None
+        self._library_states[lib].saver_worker = None

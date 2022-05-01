@@ -47,6 +47,7 @@ def main() -> None:
     splash_screen.finish(window)
 
     app.exec_()
+    lib_manager.unload()
     am.uninitialize()
     conf_manager.save(utils.getConfigFile())
 

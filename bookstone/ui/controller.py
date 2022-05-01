@@ -2,19 +2,16 @@ from typing import List
 
 from PyQt5.QtWidgets import QApplication
 
-from library.manager import LibraryManager
 from ui.window import Window
 
 
 class WindowController:
 
     _application: QApplication
-    _library_manager: LibraryManager
     _window_stack: List[Window] = []
 
-    def __init__(self, application: QApplication, library_manager: LibraryManager):
+    def __init__(self, application: QApplication):
         self._application = application
-        self._library_manager = library_manager
 
     def pushWindow(self, window: Window) -> None:
 
@@ -39,5 +36,4 @@ class WindowController:
         try:
             self._window_stack[-1].show()
         except IndexError:
-            self._library_manager.abortIndexing()
             self._application.exit()

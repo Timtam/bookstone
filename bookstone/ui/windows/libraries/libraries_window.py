@@ -91,8 +91,8 @@ class LibrariesWindow(Window):
         if not success:
             return
 
-        library.save()
         self._library_manager.addLibrary(library)
+        self._library_manager.save(library)
 
         self.libraries_model.reloadLibraries()
 
@@ -123,7 +123,7 @@ class LibrariesWindow(Window):
         if not success:
             return
 
-        lib.save()
+        self._library_manager.save(lib)
         self.libraries_model.updateLibrary(lib)
 
     def eventFilter(self, source: QObject, event: QEvent) -> bool:

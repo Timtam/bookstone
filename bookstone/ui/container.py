@@ -24,7 +24,7 @@ class UIContainer(DeclarativeContainer):
 
     settings_window: Factory[SettingsWindow] = Factory(SettingsWindow)
     window_controller: Singleton[WindowController] = Singleton(
-        WindowController, application, library_manager
+        WindowController, application
     )
     backend_tabs: Object[Tuple[Type["BackendTab"], ...]] = Object(BackendTabs)
 
