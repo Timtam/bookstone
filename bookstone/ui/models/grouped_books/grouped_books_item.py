@@ -124,7 +124,7 @@ class GroupedBooksItem:
             "Title",
             "Author",
             "Series",
-            "Entry",
+            "Volume",
         )
 
     def getColumnText(self, column: int) -> str:
@@ -153,8 +153,8 @@ class GroupedBooksItem:
         elif column == 3:
             if self._type == GroupedBooksItemType.book:
                 book = self._library.findBook(self._book_path)
-                if book and book.tags["entry"].isModified():
-                    return book.tags["entry"].value
+                if book and book.tags["volume"].isModified():
+                    return book.tags["volume"].value
                 elif not book:
                     return "Unknown Book"
 

@@ -6,7 +6,7 @@ from .tag_collection import TagCollection
 Patterns: List[Pattern[str]] = [
     # series: Author - Series/Entry - Title
     re.compile(
-        r"^(?P<author>.+?(?= -)) - (?P<series>.+?(?=/))/(?P<entry>.+?(?= -)) - (?P<title>.+)"
+        r"^(?P<author>.+?(?= -)) - (?P<series>.+?(?=/))/(?P<volume>.+?(?= -)) - (?P<title>.+)"
     ),
     # standalone: Author - Title
     re.compile(
