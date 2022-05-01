@@ -48,7 +48,7 @@ class SortedGroupedBooksModel(QSortFilterProxyModel):
                 + " "
                 + left_book.tags["series"].value
                 + " "
-                + left_book.tags["entry"].value
+                + left_book.tags["volume"].value
                 + " "
                 + left_book.tags["title"].value
                 + " "
@@ -59,7 +59,7 @@ class SortedGroupedBooksModel(QSortFilterProxyModel):
                 + " "
                 + right_book.tags["series"].value
                 + " "
-                + right_book.tags["entry"].value
+                + right_book.tags["volume"].value
                 + " "
                 + right_book.tags["title"].value
                 + " "
