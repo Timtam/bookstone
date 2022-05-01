@@ -15,6 +15,7 @@ groups: List[Group] = [
     ),
     Group(
         tag="series",
+        replacement_text="(no series)",
         enabled=True,
     ),
 ]

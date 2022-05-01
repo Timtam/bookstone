@@ -10,22 +10,27 @@ from .grouped_books_item import GroupedBooksItem, GroupedBooksItemType
 class Group:
 
     tag: str
+    replacement_text: str = ""
     enabled: bool = False
 
     def getItem(self, parent: GroupedBooksItem, book: Book) -> GroupedBooksItem:
 
         group_item: Optional[GroupedBooksItem]
+        group_name: str
 
-        group_item = parent.getChild(
-            "group:" + parent._library.uuid + ";" + book.tags[self.tag].value
-        )
+        if book.tags[self.tag].isModified() or self.replacement_text == "":
+            group_name = book.tags[self.tag].value
+        else:
+            group_name = self.replacement_text
+
+        group_item = parent.getChild(f"group:{parent._library.uuid};{group_name}")
 
         if not group_item:
 
             group_item = GroupedBooksItem(
                 type=GroupedBooksItemType.group,
                 library=parent._library,
-                group_name=book.tags[self.tag].value,
+                group_name=group_name,
                 parent=parent,
             )
 
