@@ -138,7 +138,11 @@ class LibrariesWindow(Window):
 
         if event.type() == QEvent.ContextMenu and source is self.libraries_list:
 
-            index: int = source.indexAt(cast(QContextMenuEvent, event).pos()).row()
+            index: int = (
+                cast(QTableView, source)
+                .indexAt(cast(QContextMenuEvent, event).pos())
+                .row()
+            )
 
             if index >= 0:
                 lib: Library = self._library_manager.getLibraries()[index]
