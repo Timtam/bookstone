@@ -1,6 +1,6 @@
 from typing import Any, Iterable, List, Optional, cast
 
-from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt
+from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, QVariant
 
 from library.book import Book
 from library.library import Library
@@ -127,13 +127,13 @@ class GroupedBooksModel(QAbstractItemModel):
     def data(self, index: QModelIndex, role: int = Qt.DisplayRole) -> Any:
 
         if not index.isValid():
-            return None
+            return QVariant()
 
         if role not in (
             Qt.DisplayRole,
             Qt.AccessibleTextRole,
         ):
-            return None
+            return QVariant()
 
         item: Optional[GroupedBooksItem] = self.getItem(index)
 
@@ -146,9 +146,9 @@ class GroupedBooksModel(QAbstractItemModel):
 
     def headerData(
         self, section: int, orientation: Qt.Orientation, role: int = Qt.DisplayRole
-    ) -> str:
+    ) -> Any:
 
         if orientation == Qt.Horizontal and role == Qt.DisplayRole:
             return self._root.columnNames[section]
 
-        return ""
+        return QVariant()
