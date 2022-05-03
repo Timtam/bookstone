@@ -107,3 +107,10 @@ class Library:
 
     def __hash__(self) -> int:
         return self._uuid.int
+
+    def setBooks(self, books: List[Book]) -> None:
+
+        self._books.clear()
+
+        for b in books:
+            self._books[b.path] = b

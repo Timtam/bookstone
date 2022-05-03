@@ -4,17 +4,20 @@ import os.path
 import warnings
 from dataclasses import dataclass
 from json.decoder import JSONDecodeError
-from typing import Any, Dict, List, Optional, TextIO, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, TextIO, cast
 
+from dependency_injector.providers import Factory
 from PyQt5.QtCore import QObject, QThread
 
 from utils import getLibrariesDirectory
 from workers.library_indexing import LibraryIndexingResult, LibraryIndexingWorker
-from workers.library_saver import LibrarySaverWorker
 
-from .book import Book
 from .library import Library
 from .node import Node
+
+if TYPE_CHECKING:
+    from workers.library_saver import LibrarySaverWorker
+
 
 # stores all indexing state related information
 
@@ -24,7 +27,7 @@ class LibraryState:
     indexing_thread: Optional[QThread] = None
     indexing_worker: Optional[LibraryIndexingWorker] = None
     saver_thread: Optional[QThread] = None
-    saver_worker: Optional[LibrarySaverWorker] = None
+    saver_worker: Optional["LibrarySaverWorker"] = None
     last_indexing_status: str = "Waiting."
 
 
@@ -36,13 +39,21 @@ class LibraryManager(QObject):
 
     _library_states: Dict[Library, LibraryState]
     _libraries: List[Library]
+    _library_indexing_worker_factory: Factory[LibraryIndexingWorker]
+    _library_saver_worker_factory: Factory["LibrarySaverWorker"]
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        library_indexing_worker_factory: Factory[LibraryIndexingWorker],
+        library_saver_worker_factory: Factory["LibrarySaverWorker"],
+    ) -> None:
 
         super().__init__()
 
         self._library_states = {}
         self._libraries = []
+        self._library_indexing_worker_factory = library_indexing_worker_factory
+        self._library_saver_worker_factory = library_saver_worker_factory
 
     def addLibrary(self, lib: Library) -> None:
         self._libraries.append(lib)
@@ -117,7 +128,9 @@ class LibraryManager(QObject):
             if self._library_states[lib].indexing_thread:
                 continue
 
-            worker: LibraryIndexingWorker = LibraryIndexingWorker(lib)
+            worker: LibraryIndexingWorker = self._library_indexing_worker_factory(
+                library=lib
+            )
             thread: QThread = QThread(parent=self)
 
             worker.moveToThread(thread)
@@ -153,22 +166,9 @@ class LibraryManager(QObject):
         # we will simply replace the old tree with the new one
         lib.setTree(new_tree)
 
-        # comparing new to old book analysis results
-        books: List[Book] = result.books
-        book: Book
+        # and the old books with the new ones
 
-        # iterate over all books and remove books with missing paths
-
-        for book in lib.getBooks():
-            if not new_tree.findChild(book.path):
-                lib.removeBook(book)
-
-        # add all books not in the library
-
-        for book in books:
-
-            if not lib.findBook(book):
-                lib.addBook(book)
+        lib.setBooks(result.books)
 
         self.save(lib)
 
@@ -227,7 +227,7 @@ class LibraryManager(QObject):
         if self._library_states[lib].saver_thread:
             return
 
-        worker: LibrarySaverWorker = LibrarySaverWorker(lib)
+        worker: LibrarySaverWorker = self._library_saver_worker_factory(library=lib)
         thread: QThread = QThread(parent=self)
 
         worker.moveToThread(thread)

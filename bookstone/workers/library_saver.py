@@ -3,6 +3,7 @@ from typing import IO, Any, Dict
 
 import fs
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
+from PyQt5.QtWidgets import QApplication
 
 from library.library import Library
 from utils import getLibrariesDirectory
@@ -10,13 +11,15 @@ from utils import getLibrariesDirectory
 
 class LibrarySaverWorker(QObject):
 
+    application: QApplication
     finished: pyqtSignal = pyqtSignal()
     library: Library
 
-    def __init__(self, library: Library) -> None:
+    def __init__(self, application: QApplication, library: Library) -> None:
 
         super().__init__()
 
+        self.application = application
         self.library = library
 
     @pyqtSlot()
@@ -36,6 +39,8 @@ class LibrarySaverWorker(QObject):
 
                 if QThread.currentThread().isInterruptionRequested():
                     return
+
+                self.application.processEvents()  # type: ignore
 
                 temp_file.write(data[offset : offset + chunk_size])
 

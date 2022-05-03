@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Pattern
 
 import fs
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
+from PyQt5.QtWidgets import QApplication
 
 from exceptions import ThreadStoppedError
 from library.book import Book
@@ -27,14 +28,16 @@ class LibraryIndexingResult:
 
 class LibraryIndexingWorker(QObject):
 
+    application: QApplication
     finished: pyqtSignal = pyqtSignal()
     library: Library
     result: pyqtSignal = pyqtSignal(LibraryIndexingResult)
     status: pyqtSignal = pyqtSignal(str)
 
-    def __init__(self, library: Library):
+    def __init__(self, application: QApplication, library: Library):
 
         super().__init__()
+        self.application = application
         self.library = library
 
     @pyqtSlot()
@@ -103,6 +106,7 @@ class LibraryIndexingWorker(QObject):
 
                         node_count += 1
                         scan = True
+                        self.application.processEvents()  # type: ignore
 
                         new: Node = Node()
                         new.setName(dir)
@@ -177,6 +181,8 @@ class LibraryIndexingWorker(QObject):
                     )
                     continue
 
+                self.application.processEvents()  # type: ignore
+
                 match = matchPattern(pattern, next.getPath())
 
                 if match:
@@ -203,6 +209,8 @@ class LibraryIndexingWorker(QObject):
 
                 if i == j:
                     continue
+
+                self.application.processEvents()  # type: ignore
 
                 if book_nodes[i].isParentOf(book_nodes[j]):
                     del book_map[books[i]]

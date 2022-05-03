@@ -62,5 +62,5 @@ def run_profile(code: str) -> None:
 
 if __name__ == "__main__":
 
-    main()
-    # run_profile("main()")
+    # main()
+    run_profile("main()")
