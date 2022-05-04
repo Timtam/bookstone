@@ -149,9 +149,7 @@ class LibraryManager(QObject):
             thread.finished.connect(thread.deleteLater)
 
             worker.result.connect(self._receive_indexing_result)
-            worker.status.connect(
-                lambda msg: self._indexing_status(cast(Library, lib), msg)
-            )
+            worker.status.connect(self._indexing_status)
 
             self._library_states[lib].indexing_thread = thread
             self._library_states[lib].indexing_worker = worker

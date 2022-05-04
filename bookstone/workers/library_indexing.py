@@ -32,7 +32,7 @@ class LibraryIndexingWorker(QObject):
     finished: pyqtSignal = pyqtSignal()
     library: Library
     result: pyqtSignal = pyqtSignal(LibraryIndexingResult)
-    status: pyqtSignal = pyqtSignal(str)
+    status: pyqtSignal = pyqtSignal(Library, str)
 
     def __init__(self, application: QApplication, library: Library):
 
@@ -45,12 +45,12 @@ class LibraryIndexingWorker(QObject):
 
         try:
 
-            self.status.emit("Started.")
+            self.status.emit(self.library, "Started.")
 
             tree: Optional[Node] = self.indexFolderStructure(self.library)
 
             if not tree:
-                self.status.emit("Failed.")
+                self.status.emit(self.library, "Failed.")
 
                 self.result.emit(
                     LibraryIndexingResult(library=self.library, tree=None, books=[])
@@ -62,7 +62,7 @@ class LibraryIndexingWorker(QObject):
 
             books: List[Book] = self.indexBooks(self.library, tree)
 
-            self.status.emit("Finished.")
+            self.status.emit(self.library, "Finished.")
 
             self.result.emit(
                 LibraryIndexingResult(library=self.library, tree=tree, books=books)
@@ -71,7 +71,7 @@ class LibraryIndexingWorker(QObject):
             self.finished.emit()
 
         except ThreadStoppedError:
-            self.status.emit("Aborted.")
+            self.status.emit(self.library, "Aborted.")
             pass
 
     def indexFolderStructure(self, lib: Library) -> Optional[Node]:
@@ -155,7 +155,9 @@ class LibraryIndexingWorker(QObject):
                         if scan:
                             open.put(new)
 
-                        self.status.emit(f"{node_count} new nodes indexed.")
+                        self.status.emit(
+                            self.library, f"{node_count} new nodes indexed."
+                        )
 
         except fs.errors.CreateFailed:
             return None
