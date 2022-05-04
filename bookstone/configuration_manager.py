@@ -2,7 +2,9 @@ import copy
 import json
 import os.path
 from json.decoder import JSONDecodeError
-from typing import Any, Dict, TextIO
+from typing import Any, Dict
+
+import fs.osfs
 
 
 class ConfigurationManager:
@@ -61,40 +63,43 @@ class ConfigurationManager:
 
     def load(self, file: str) -> None:
 
-        f: TextIO
         name: str
+        ser: Any
         value: Any
 
-        if not os.path.exists(file):
+        f: fs.osfs.OSFS = fs.osfs.OSFS(os.path.dirname(file), create=True)
+
+        if not f.exists(os.path.relpath(file, os.path.dirname(file))):
             return
 
-        with open(file, "r") as f:
-            data: str = f.read()
+        data: str = f.readtext(os.path.relpath(file, os.path.dirname(file)))
 
-            ser: Any
+        f.close()
 
-            try:
-                ser = json.loads(data)
-            except JSONDecodeError:
-                return
+        try:
+            ser = json.loads(data)
+        except JSONDecodeError:
+            return
 
-            __dict__: Dict[str, Any] = super().__getattribute__("__dict__")
+        __dict__: Dict[str, Any] = super().__getattribute__("__dict__")
 
-            for name, value in ser.items():
+        for name, value in ser.items():
 
-                if name not in __dict__["_configs"]:
-                    continue
+            if name not in __dict__["_configs"]:
+                continue
 
-                __dict__["_configs"][name] = value
+            __dict__["_configs"][name] = value
 
     def save(self, file: str) -> None:
 
         config: Dict[str, Any] = copy.copy(
             super().__getattribute__("__dict__").get("_configs", {})
         )
-        f: TextIO
 
         data: str = json.dumps(config, indent=2)
 
-        with open(file, "w") as f:
-            f.write(data)
+        f: fs.osfs.OSFS = fs.osfs.OSFS(os.path.dirname(file), create=True)
+
+        f.writetext(os.path.relpath(file, os.path.dirname(file)), data)
+
+        f.close()

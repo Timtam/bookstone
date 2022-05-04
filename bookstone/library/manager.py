@@ -4,8 +4,9 @@ import os.path
 import warnings
 from dataclasses import dataclass
 from json.decoder import JSONDecodeError
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, TextIO, cast
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, cast
 
+import fs.osfs
 from dependency_injector.providers import Factory
 from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
@@ -93,32 +94,26 @@ class LibraryManager(QObject):
 
     def load(self) -> None:
 
-        if not os.path.exists(getLibrariesDirectory()) or not os.path.isdir(
-            getLibrariesDirectory()
-        ):
-            return
+        f: fs.osfs.OSFS = fs.osfs.OSFS(getLibrariesDirectory(), create=True)
 
-        libraries: List[str] = os.listdir(getLibrariesDirectory())
+        libraries: List[str] = f.listdir(".")
 
         for lib in libraries:
 
-            libfile: TextIO
-            libpath: str = os.path.join(getLibrariesDirectory(), lib)
+            data: str = f.readtext(lib)
 
-            with open(libpath, "r") as libfile:
-
-                data: str = libfile.read()
-
-                try:
-                    ser: Dict[str, Any] = json.loads(data)
-                except JSONDecodeError:
-                    warnings.warn(f"invalid json data found in {libpath}")
-                    continue
+            try:
+                ser: Dict[str, Any] = json.loads(data)
+            except JSONDecodeError:
+                warnings.warn(f"invalid json data found in {lib}")
+                continue
 
             l: Library = Library()
             l.deserialize(ser)
 
             self.addLibrary(l)
+
+        f.close()
 
         self.startIndexing()
 
