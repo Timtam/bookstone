@@ -99,6 +99,7 @@ class LibrariesWindow(Window):
 
         self._library_manager.addLibrary(library)
         self._library_manager.save(library)
+        self._library_manager.startIndexing(library)
 
         self.libraries_model.reloadLibraries()
 
