@@ -1,4 +1,4 @@
-from typing import Any, Iterable, List, Optional, cast
+from typing import TYPE_CHECKING, Any, List, Optional, cast
 
 from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, QVariant
 
@@ -7,6 +7,9 @@ from library.library import Library
 
 from .group import Group
 from .grouped_books_item import GroupedBooksItem, GroupedBooksItemType
+
+if TYPE_CHECKING:
+    from library.manager import LibraryManager
 
 groups: List[Group] = [
     Group(
@@ -23,18 +26,28 @@ groups: List[Group] = [
 
 class GroupedBooksModel(QAbstractItemModel):
 
+    _library_manager: "LibraryManager"
     _root: GroupedBooksItem
 
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
+    def __init__(
+        self, library_manager: "LibraryManager", *args: Any, **kwargs: Any
+    ) -> None:
         super().__init__(*args, **kwargs)
 
         self._root = GroupedBooksItem(type=GroupedBooksItemType.root)
+        self._library_manager = library_manager
+        self._library_manager.libraryAdded.connect(self.update)
+        self._library_manager.libraryUpdated.connect(self.update)
+        self._library_manager.libraryRemoved.connect(lambda l: self.update(l, True))
 
-    def update(self, libs: Iterable[Library]) -> None:
+        self.update()
+
+    def update(self, lib: Optional[Library] = None, removed: bool = False) -> None:
 
         book: Book
-        lib: Library
+        child_number: int
         lib_item: GroupedBooksItem
+        libs: List[Library]
 
         def getParentItem(parent: GroupedBooksItem, book: Book) -> GroupedBooksItem:
 
@@ -47,6 +60,11 @@ class GroupedBooksModel(QAbstractItemModel):
 
             return item
 
+        if lib:
+            libs = [lib]
+        else:
+            libs = self._library_manager.getLibraries()
+
         self.modelAboutToBeReset.emit()  # type: ignore
 
         for lib in libs:
@@ -55,7 +73,25 @@ class GroupedBooksModel(QAbstractItemModel):
                 type=GroupedBooksItemType.library, parent=self._root, library=lib
             )
 
-            self._root.insertChild(lib_item)
+            if self._root.getChild(str(lib_item)):
+
+                child_number = cast(
+                    int,
+                    cast(
+                        "GroupedBooksItem", self._root.getChild(str(lib_item))
+                    ).childNumber,
+                )
+
+                self._root.removeChild(child_number)
+
+            else:
+
+                child_number = -1
+
+            if removed:
+                continue
+
+            self._root.insertChild(lib_item, child_number)
 
             for book in lib.getBooks():
 

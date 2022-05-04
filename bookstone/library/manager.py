@@ -7,7 +7,7 @@ from json.decoder import JSONDecodeError
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, TextIO, cast
 
 from dependency_injector.providers import Factory
-from PyQt5.QtCore import QObject, QThread
+from PyQt5.QtCore import QObject, QThread, pyqtSignal
 
 from utils import getLibrariesDirectory
 from workers.library_indexing import LibraryIndexingResult, LibraryIndexingWorker
@@ -42,6 +42,10 @@ class LibraryManager(QObject):
     _library_indexing_worker_factory: Factory[LibraryIndexingWorker]
     _library_saver_worker_factory: Factory["LibrarySaverWorker"]
 
+    libraryAdded: pyqtSignal = pyqtSignal(Library)
+    libraryRemoved: pyqtSignal = pyqtSignal(Library)
+    libraryUpdated: pyqtSignal = pyqtSignal(Library)
+
     def __init__(
         self,
         library_indexing_worker_factory: Factory[LibraryIndexingWorker],
@@ -58,6 +62,7 @@ class LibraryManager(QObject):
     def addLibrary(self, lib: Library) -> None:
         self._libraries.append(lib)
         self._library_states[lib] = LibraryState()
+        self.libraryAdded.emit(lib)
 
     def getLibraries(self) -> List[Library]:
         return self._libraries[:]
@@ -84,6 +89,7 @@ class LibraryManager(QObject):
             os.remove(lib.getFileName())
 
         del self._libraries[i]
+        self.libraryRemoved.emit(lib)
 
     def load(self) -> None:
 
@@ -113,6 +119,8 @@ class LibraryManager(QObject):
             l.deserialize(ser)
 
             self.addLibrary(l)
+
+        self.startIndexing()
 
     def startIndexing(self, lib: Optional[Library] = None) -> None:
 
@@ -169,6 +177,8 @@ class LibraryManager(QObject):
         # and the old books with the new ones
 
         lib.setBooks(result.books)
+
+        self.libraryUpdated.emit(lib)
 
         self.save(lib)
 

@@ -1,5 +1,5 @@
 from queue import Queue
-from typing import Any
+from typing import TYPE_CHECKING, Any, List
 
 from dependency_injector.providers import Factory
 from PyQt5.QtCore import QModelIndex, Qt
@@ -13,9 +13,7 @@ from PyQt5.QtWidgets import (
     QTreeView,
 )
 
-from library.manager import LibraryManager
 from ui.controller import WindowController
-from ui.models.grouped_books import GroupedBooksModel
 from ui.models.grouped_books.grouped_books_item import (
     GroupedBooksItem,
     GroupedBooksItemType,
@@ -25,26 +23,31 @@ from ui.window import Window
 from ui.windows.libraries import LibrariesWindow
 from ui.windows.settings import SettingsWindow
 
+if TYPE_CHECKING:
+    from ui.models.grouped_books import GroupedBooksModel
+
 
 class MainWindow(Window):
 
+    _current_index: str
+    _expanded_items: List[str]
+    _grouped_books_model_factory: Factory["GroupedBooksModel"]
     _libraries_window_factory: Factory[LibrariesWindow]
-    _library_manager: LibraryManager
     _settings_window_factory: Factory[SettingsWindow]
     _window_controller: WindowController
 
     file_menu: QMenu
-    libraries_model: GroupedBooksModel
+    libraries_model: "GroupedBooksModel"
     libraries_view: QTreeView
     menu_bar: QMenuBar
     sorted_libraries_model: SortedGroupedBooksModel
 
     def __init__(
         self,
-        library_manager: LibraryManager,
         window_controller: WindowController,
         libraries_window_factory: Factory[LibrariesWindow],
         settings_window_factory: Factory[SettingsWindow],
+        grouped_books_model_factory: Factory["GroupedBooksModel"],
         *args: Any,
         **kwargs: Any,
     ):
@@ -52,9 +55,10 @@ class MainWindow(Window):
         super().__init__(*args, **kwargs)
 
         self._libraries_window_factory = libraries_window_factory
-        self._library_manager = library_manager
         self._settings_window_factory = settings_window_factory
         self._window_controller = window_controller
+        self._grouped_books_model_factory = grouped_books_model_factory
+        self._expanded_items = []
 
         self.setWindowTitle("Bookstone")
 
@@ -81,10 +85,11 @@ class MainWindow(Window):
 
         libraries_view_label = QLabel("Books", self)
         layout.addWidget(libraries_view_label)
-        self.libraries_model = GroupedBooksModel(self)
+        self.libraries_model = self._grouped_books_model_factory(parent=self)
         self.sorted_libraries_model = SortedGroupedBooksModel(self)
         self.sorted_libraries_model.setSourceModel(self.libraries_model)
-        self.sorted_libraries_model.modelReset.connect(self._model_reset)
+        self.sorted_libraries_model.modelAboutToBeReset.connect(self._save_tree_state)
+        self.sorted_libraries_model.modelReset.connect(self._restore_tree_state)
 
         self.libraries_view = QTreeView(self)
         layout.addWidget(self.libraries_view)
@@ -96,17 +101,11 @@ class MainWindow(Window):
 
         self.setLayout(layout)
 
-        self.libraries_model.update(self._library_manager.getLibraries())
         self.libraries_view.header().setSectionResizeMode(QHeaderView.ResizeToContents)
 
-        self._library_manager.startIndexing()
-
     def showLibrariesWindow(self) -> None:
-        def update() -> None:
-            self.libraries_model.update(self._library_manager.getLibraries())
 
         window: LibrariesWindow = self._libraries_window_factory()
-        window.closed.connect(update)
 
         self._window_controller.pushWindow(window)
 
@@ -114,7 +113,56 @@ class MainWindow(Window):
 
         self._window_controller.pushWindow(self._settings_window_factory())
 
-    def _model_reset(self) -> None:
+    def _save_tree_state(self) -> None:
+
+        open: Queue[QModelIndex] = Queue()
+        next: QModelIndex
+        index: QModelIndex
+        source_index: QModelIndex
+        item: GroupedBooksItem
+
+        open.put(QModelIndex())
+
+        while not open.empty():
+
+            next = open.get()
+
+            for i in range(self.sorted_libraries_model.rowCount(next)):
+
+                index = self.sorted_libraries_model.index(i, 0, next)
+
+                if not index.isValid():
+                    continue
+
+                if self.libraries_view.isExpanded(index):
+
+                    source_index = self.sorted_libraries_model.mapToSource(index)
+
+                    if not source_index.isValid():
+                        continue
+
+                    item = self.libraries_model.getItem(source_index)
+
+                    self._expanded_items.append(str(item))
+
+                if self.sorted_libraries_model.hasChildren(index):
+                    open.put(index)
+
+        index = self.libraries_view.currentIndex()
+
+        if not index.isValid():
+            return
+
+        source_index = self.sorted_libraries_model.mapToSource(index)
+
+        if not source_index.isValid():
+            return
+
+        item = self.libraries_model.getItem(source_index)
+
+        self._current_index = str(item)
+
+    def _restore_tree_state(self) -> None:
 
         open: Queue[QModelIndex] = Queue()
         next: QModelIndex
@@ -143,6 +191,22 @@ class MainWindow(Window):
 
                 item = self.libraries_model.getItem(source_index)
 
+                try:
+
+                    if str(item) == self._current_index:
+                        self.libraries_view.setCurrentIndex(index)
+
+                except AttributeError:
+                    pass
+
                 if item._type != GroupedBooksItemType.book:
                     self.libraries_view.setFirstColumnSpanned(i, next, True)
+
+                    if str(item) in self._expanded_items:
+                        self.libraries_view.setExpanded(index, True)
+
                     open.put(index)
+
+        self._expanded_items.clear()
+
+        self._current_index = ""

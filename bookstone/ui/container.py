@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import QApplication
 from library.manager import LibraryManager
 
 from .controller import WindowController
+from .models.grouped_books import GroupedBooksModel
 from .models.libraries import LibrariesModel
 from .windows.libraries import BackendTabs, LibrariesWindow
 from .windows.main import MainWindow
@@ -30,6 +31,9 @@ class UIContainer(DeclarativeContainer):
     libraries_model: Factory[LibrariesModel] = Factory(
         LibrariesModel, library_manager=library_manager, backend_tabs=backend_tabs
     )
+    grouped_books_model: Factory[GroupedBooksModel] = Factory(
+        GroupedBooksModel, library_manager=library_manager
+    )
     libraries_window: Factory[LibrariesWindow] = Factory(
         LibrariesWindow,
         library_manager=library_manager,
@@ -37,8 +41,8 @@ class UIContainer(DeclarativeContainer):
     )
     main_window: Factory[MainWindow] = Factory(
         MainWindow,
-        library_manager=library_manager,
         window_controller=window_controller,
         libraries_window_factory=libraries_window.provider,
         settings_window_factory=settings_window.provider,
+        grouped_books_model_factory=grouped_books_model.provider,
     )
