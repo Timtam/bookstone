@@ -11,6 +11,7 @@ from .node import Node
 class Library:
 
     _books: Dict[str, Book]
+    _groups: List[str]
     _name: str
     _path: str
     _tree: Node
@@ -19,6 +20,7 @@ class Library:
     def __init__(self) -> None:
 
         self._books = {}
+        self._groups = []
         self._uuid = uuid.uuid4()
         self._name = ""
         self._tree = Node()
@@ -32,6 +34,7 @@ class Library:
             "uuid": str(self._uuid),
             "tree": self._tree.serialize(),
             "books": [b.serialize() for b in self._books.values()],
+            "groups": self._groups,
         }
 
     def deserialize(self, serialized: Dict[str, Any]) -> None:
@@ -39,6 +42,7 @@ class Library:
         self._uuid = uuid.UUID(serialized.get("uuid", ""))
         self._name = serialized.get("name", "")
         self._path = serialized.get("path", "")
+        self._groups = serialized.get("groups", [])
 
         tree: Dict[str, Any] = serialized.get("tree", {})
 
@@ -114,3 +118,9 @@ class Library:
 
         for b in books:
             self._books[b.path] = b
+
+    def getGroups(self) -> List[str]:
+        return self._groups[:]
+
+    def setGroups(self, groups: List[str]) -> None:
+        self._groups = groups[:]

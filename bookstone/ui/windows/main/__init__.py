@@ -1,8 +1,9 @@
 from queue import Queue
-from typing import TYPE_CHECKING, Any, List
+from typing import TYPE_CHECKING, Any, List, cast
 
 from dependency_injector.providers import Factory
-from PyQt5.QtCore import QModelIndex, Qt
+from PyQt5.QtCore import QEvent, QModelIndex, QObject, Qt
+from PyQt5.QtGui import QContextMenuEvent
 from PyQt5.QtWidgets import (
     QAction,
     QHBoxLayout,
@@ -97,11 +98,12 @@ class MainWindow(Window):
         self.libraries_view.setSortingEnabled(True)
         self.libraries_view.sortByColumn(1, Qt.AscendingOrder)
         self.libraries_view.setSizeAdjustPolicy(QTreeView.AdjustToContentsOnFirstShow)
+        self.libraries_view.header().setSectionResizeMode(QHeaderView.ResizeToContents)
+        self.libraries_view.installEventFilter(self)
+
         libraries_view_label.setBuddy(self.libraries_view)
 
         self.setLayout(layout)
-
-        self.libraries_view.header().setSectionResizeMode(QHeaderView.ResizeToContents)
 
     def showLibrariesWindow(self) -> None:
 
@@ -210,3 +212,21 @@ class MainWindow(Window):
         self._expanded_items.clear()
 
         self._current_index = ""
+
+    def eventFilter(self, source: QObject, event: QEvent) -> bool:
+
+        if event.type() == QEvent.ContextMenu and source is self.libraries_view:
+
+            index: QModelIndex = self.libraries_view.indexAt(
+                cast(QContextMenuEvent, event).pos()
+            )
+
+            source_index: QModelIndex = self.sorted_libraries_model.mapToSource(index)
+
+            item = self.libraries_model.getItem(source_index)
+
+            print(str(item))
+
+            return True
+
+        return super().eventFilter(source, event)

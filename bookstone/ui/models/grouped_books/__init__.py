@@ -5,23 +5,11 @@ from PyQt5.QtCore import QAbstractItemModel, QModelIndex, Qt, QVariant
 from library.book import Book
 from library.library import Library
 
-from .group import Group
 from .grouped_books_item import GroupedBooksItem, GroupedBooksItemType
+from .groups import Groups
 
 if TYPE_CHECKING:
     from library.manager import LibraryManager
-
-groups: List[Group] = [
-    Group(
-        tag="author",
-        enabled=True,
-    ),
-    Group(
-        tag="series",
-        replacement_text="(no series)",
-        enabled=True,
-    ),
-]
 
 
 class GroupedBooksModel(QAbstractItemModel):
@@ -53,10 +41,11 @@ class GroupedBooksModel(QAbstractItemModel):
 
             item: GroupedBooksItem = parent
 
-            for group in groups:
+            for group in [
+                Groups[g] for g in parent._library.getGroups() if g in Groups
+            ]:
 
-                if group.enabled:
-                    item = group.getItem(item, book)
+                item = group.getItem(item, book)
 
             return item
 

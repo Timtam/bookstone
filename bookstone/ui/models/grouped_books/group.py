@@ -11,7 +11,6 @@ class Group:
 
     tag: str
     replacement_text: str = ""
-    enabled: bool = False
 
     def getItem(self, parent: GroupedBooksItem, book: Book) -> GroupedBooksItem:
 
