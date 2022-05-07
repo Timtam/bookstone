@@ -151,6 +151,15 @@ class LibrariesWindow(Window):
                 act = QAction("Edit", menu)
                 act.triggered.connect(lambda: self.editLibrary(lib))
                 menu.addAction(act)
+
+                if self._library_manager.isIndexing(lib):
+                    act = QAction("Abort indexing", menu)
+                    act.triggered.connect(lambda: self.abortIndexing(lib))
+                else:
+                    act = QAction("Start indexing", menu)
+                    act.triggered.connect(lambda: self.startIndexing(lib))
+                menu.addAction(act)
+
                 act = QAction("Remove", menu)
                 act.triggered.connect(lambda: self.removeLibrary(lib))
                 menu.addAction(act)
@@ -158,3 +167,17 @@ class LibrariesWindow(Window):
 
                 return True
         return super().eventFilter(source, event)
+
+    def startIndexing(self, lib: Library) -> None:
+
+        if self._library_manager.isIndexing(lib):
+            return
+
+        self._library_manager.startIndexing(lib)
+
+    def abortIndexing(self, lib: Library) -> None:
+
+        if not self._library_manager.isIndexing(lib):
+            return
+
+        self._library_manager.abortIndexing(lib)
