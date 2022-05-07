@@ -11,6 +11,7 @@ from .models.grouped_books import GroupedBooksModel
 from .models.libraries import LibrariesModel
 from .windows.libraries import BackendTabs, LibrariesWindow
 from .windows.main import MainWindow
+from .windows.main.groups_dialog import GroupsDialog
 from .windows.settings import SettingsWindow
 
 if TYPE_CHECKING:
@@ -39,10 +40,14 @@ class UIContainer(DeclarativeContainer):
         library_manager=library_manager,
         libraries_model=libraries_model,
     )
+    groups_dialog: Factory[GroupsDialog] = Factory(
+        GroupsDialog, library_manager=library_manager
+    )
     main_window: Factory[MainWindow] = Factory(
         MainWindow,
         window_controller=window_controller,
         libraries_window_factory=libraries_window.provider,
         settings_window_factory=settings_window.provider,
         grouped_books_model_factory=grouped_books_model.provider,
+        groups_dialog_factory=groups_dialog.provider,
     )

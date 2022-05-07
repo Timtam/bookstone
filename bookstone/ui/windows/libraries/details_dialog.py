@@ -32,7 +32,7 @@ class DetailsDialog(QDialog):
 
     def __init__(
         self, backend_tab: Type[BackendTab], library: Library, *args: Any, **kwargs: Any
-    ):
+    ) -> None:
 
         super().__init__(*args, **kwargs)
 

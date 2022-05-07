@@ -25,7 +25,10 @@ from ui.windows.libraries import LibrariesWindow
 from ui.windows.settings import SettingsWindow
 
 if TYPE_CHECKING:
+    from library.library import Library
     from ui.models.grouped_books import GroupedBooksModel
+
+    from .groups_dialog import GroupsDialog
 
 
 class MainWindow(Window):
@@ -33,6 +36,7 @@ class MainWindow(Window):
     _current_index: str
     _expanded_items: List[str]
     _grouped_books_model_factory: Factory["GroupedBooksModel"]
+    _groups_dialog_factory: Factory["GroupsDialog"]
     _libraries_window_factory: Factory[LibrariesWindow]
     _settings_window_factory: Factory[SettingsWindow]
     _window_controller: WindowController
@@ -49,6 +53,7 @@ class MainWindow(Window):
         libraries_window_factory: Factory[LibrariesWindow],
         settings_window_factory: Factory[SettingsWindow],
         grouped_books_model_factory: Factory["GroupedBooksModel"],
+        groups_dialog_factory: Factory["GroupsDialog"],
         *args: Any,
         **kwargs: Any,
     ):
@@ -59,6 +64,7 @@ class MainWindow(Window):
         self._settings_window_factory = settings_window_factory
         self._window_controller = window_controller
         self._grouped_books_model_factory = grouped_books_model_factory
+        self._groups_dialog_factory = groups_dialog_factory
         self._expanded_items = []
 
         self.setWindowTitle("Bookstone")
@@ -215,6 +221,8 @@ class MainWindow(Window):
 
     def eventFilter(self, source: QObject, event: QEvent) -> bool:
 
+        act: QAction
+
         if event.type() == QEvent.ContextMenu and source is self.libraries_view:
 
             index: QModelIndex = self.libraries_view.indexAt(
@@ -225,8 +233,21 @@ class MainWindow(Window):
 
             item = self.libraries_model.getItem(source_index)
 
-            print(str(item))
+            if item._type == GroupedBooksItemType.library:
+
+                menu = QMenu(self.libraries_view)
+                act = QAction("Group books...", menu)
+                act.triggered.connect(lambda: self.configureGroups(item._library))
+                menu.addAction(act)
+
+                menu.exec_()
 
             return True
 
         return super().eventFilter(source, event)
+
+    def configureGroups(self, lib: "Library") -> None:
+
+        dlg = self._groups_dialog_factory(library=lib, parent=self)
+
+        dlg.exec_()
