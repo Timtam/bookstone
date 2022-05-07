@@ -160,9 +160,9 @@ class GroupsDialog(QDialog):
 
         index: QModelIndex = self.selected_groups_view.currentIndex()
 
-        if index.row() == self.selected_groups_model.rowCount():
+        if index.row() == self.selected_groups_model.rowCount() - 1:
             return
 
         self.selected_groups_model.moveRows(
-            QModelIndex(), index.row(), 1, QModelIndex(), index.row() + 1
+            QModelIndex(), index.row() + 1, 1, QModelIndex(), index.row()
         )
