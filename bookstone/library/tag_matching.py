@@ -10,7 +10,7 @@ Patterns: List[Pattern[str]] = [
     ),
     # standalone: Author - Title
     re.compile(
-        r"^(?P<author>.+?(?= -)) - (?P<title>.+?(?= -))(?: - )?(?P<subtitle>.+)?"
+        r"^(?P<author>.+?(?= -)) - (?P<title>.+?(?= -|$))(?: - )?(?P<subtitle>.+)?"
     ),
 ]
 
