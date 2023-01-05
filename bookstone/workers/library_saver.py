@@ -2,6 +2,7 @@ import json
 from typing import IO, Any, Dict
 
 import fs
+import fs.move
 import fs.osfs
 from PyQt5.QtCore import QObject, QThread, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QApplication
